@@ -1,0 +1,27 @@
+[Unit]
+Description=ThinkPad Elan asymmetric three-finger gesture daemon
+Documentation=file:///home/lancetfish/code/ThinkPad/README.md
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+ConditionEnvironment=NIRI_SOCKET
+ConditionPathExists=/home/lancetfish/code/ThinkPad/.venv/bin/python
+
+[Service]
+Type=simple
+WorkingDirectory=/home/lancetfish/code/ThinkPad
+Environment=PYTHONPATH=/home/lancetfish/code/ThinkPad/src
+Environment=PYTHONUNBUFFERED=1
+Environment=YDOTOOL_SOCKET=%t/.ydotool_socket
+ExecStart=/home/lancetfish/code/ThinkPad/.venv/bin/python -m elan_gesture --config /home/lancetfish/.config/elan-gesture/config.toml daemon
+Restart=on-failure
+RestartSec=2
+# The process remains the ordinary session user. No AmbientCapabilities,
+# no User=root, no EVIOCGRAB. Read-only evdev access comes from uaccess.
+UMask=0077
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=elan-gesture
+
+[Install]
+WantedBy=graphical-session.target

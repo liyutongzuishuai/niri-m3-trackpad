@@ -1,0 +1,73 @@
+# niri-m3-trackpad manifest
+# All paths are relative to this project directory unless marked absolute.
+
+[project]
+name = "niri-m3-trackpad"
+version = "1.1.0"
+description = "Niri 26.04 + Material 3 Waybar + Apple-style Elan trackpad gestures, in one non-destructive installer"
+home = "$HOME"
+target_root = "$HOME/.config"
+state_root = "$HOME/.local/state/integrated-niri-m3"
+
+[profiles.m3-waybar]
+source = "profiles/m3-waybar"
+install_dir = "~/.config/waybar-m3"
+description = "Material 3 Expressive Waybar, scripts, GTK3 control center, fonts, colors and preview tools"
+kind = "copy_tree"
+activate_command = "waybar -c ~/.config/waybar-m3/config.jsonc -s ~/.config/waybar-m3/style.css"
+required_commands = ["waybar", "fuzzel", "makoctl", "jq", "pactl", "brightnessctl", "nmcli"]
+
+[profiles.niri-core]
+source = "profiles/niri-dotfiles/dotfiles/.config/niri"
+install_dir = "~/.config/niri"
+description = "Niri KDL, key binds, startup, animations, window rules and layout"
+kind = "config_dir"
+required_commands = ["niri", "swaybg", "fcitx5", "ydotoold", "sxhkd"]
+
+[profiles.niri-theme]
+source = "profiles/niri-dotfiles/dotfiles/.config/matugen"
+install_dir = "~/.config/matugen"
+description = "Matugen templates and generated color pipeline for GTK, fuzzel, mako, kitty, niri and waybar"
+kind = "config_dir"
+required_commands = ["matugen"]
+
+[profiles.niri-supporting]
+source = "profiles/niri-dotfiles/dotfiles/.config"
+install_dir = "~/.config"
+description = "Supporting dotfiles: fish, foot, fuzzel, mako, kitty, waypaper, swayosd, yazi, fastfetch, etc."
+kind = "selective_config"
+required_commands = ["fish"]
+
+[profiles.elan-gesture]
+source = "profiles/elan-touch"
+install_dir = "~/.config/elan-gesture"
+description = "Read-only evdev Apple gesture daemon (three-finger tap, four-finger swipes, thumb spread, edge swipe), user systemd unit, fish helpers and TouchViz"
+kind = "python_project"
+required_commands = ["python3", "systemctl", "fish"]
+optional_commands = ["evtest", "getfacl", "udevadm"]
+
+[integration.waybar]
+# The unified bar is M3. Niri's spawn-at-startup line is patched by scripts/activate.sh.
+startup_old = 'spawn-at-startup "waybar"'
+startup_new = 'spawn-at-startup "waybar" "-c" "$HOME/.config/waybar-m3/config.jsonc" "-s" "$HOME/.config/waybar-m3/style.css"'
+# KDL does not expand $HOME inside spawn argv; activate.sh instead installs a tiny launcher.
+launcher = "~/.local/bin/integrated-waybar"
+launcher_source = "modules/integrated-waybar"
+
+[integration.matugen]
+# Keep the existing generated ~/.config/waybar/colors.css and additionally refresh the M3 bar.
+extra_output = "~/.config/waybar-m3/colors.css"
+template = "profiles/niri-dotfiles/dotfiles/.config/matugen/templates/colors.css"
+
+[integration.elan]
+config_source = "profiles/elan-touch/config/examples/apple-trackpad.toml"
+user_config = "~/.config/elan-gesture/config.toml"
+systemd_unit = "systemd/elan-gesture.service"
+udev_rule = "72-elan-touchpad-gesture-uaccess.rules"
+
+[safety]
+default_mode = "dry-run"
+backup_existing = true
+never_delete_user_files = true
+never_modify_niri_without_backup = true
+never_run_as_root = true

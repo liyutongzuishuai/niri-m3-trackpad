@@ -1,0 +1,57 @@
+/*
+ * waybar-m3 · colors.css
+ * Material 3 深色配色，由 matugen 从壁纸推导
+ *
+ * 壁纸：$HOME/Pictures/Wallpapers/3840px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg
+ * scheme：scheme-content（dark）
+ * 生成：2026-10-04 20:57:07 · matugen 3.1.0
+ *
+ * 这是整套配置唯一的颜色来源：style.css 与所有脚本都只按角色名引用颜色，
+ * 不写死任何十六进制值。换壁纸后重新跑 tools/set-colors.sh 即可。
+ * 提示词给的那套紫色保留在 colors.prompt.css（--prompt 可还原）。
+ */
+
+/* ── Primary ── */
+@define-color primary                    #a9c7ff;
+@define-color on_primary                 #0a305f;
+@define-color primary_container          #4d6b9d;
+@define-color on_primary_container       #ffffff;
+
+/* ── Secondary / Tertiary ── */
+@define-color secondary                  #bcc7df;
+@define-color secondary_container        #3c475b;
+@define-color on_secondary_container     #d5e0f9;
+@define-color tertiary_container         #885a8b;
+@define-color on_tertiary_container      #ffffff;
+
+/* ── Surface ── */
+@define-color surface                    #121317;
+@define-color surface_container_low      #1a1c1f;
+@define-color surface_container          #1e2023;
+@define-color surface_container_high     #292a2d;
+@define-color surface_container_highest  #333538;
+
+/* ── On-surface / Outline ── */
+@define-color on_surface                 #e3e2e6;
+@define-color on_surface_variant         #c4c6d0;
+@define-color outline                    #8d909a;
+@define-color outline_variant            #43474f;
+
+/* ── Inverse ── */
+@define-color inverse_surface            #e3e2e6;
+@define-color inverse_on_surface         #2f3034;
+@define-color inverse_primary            #405f90;
+
+/* ── Error ── */
+@define-color error                      #ffb4ab;
+@define-color on_error                   #690005;
+@define-color error_container            #93000a;
+@define-color on_error_container         #ffdad6;
+
+/* ── 别名：只引用上面的角色，不引入新颜色 ── */
+@define-color background                 @surface;
+@define-color surface_dim                @surface;
+@define-color surface_bright             @surface_container_highest;
+@define-color surface_variant            @outline_variant;
+@define-color shadow                     @surface;
+@define-color scrim                      @surface;

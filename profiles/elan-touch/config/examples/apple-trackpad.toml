@@ -1,0 +1,145 @@
+# Apple trackpad gesture recreation for ThinkPad Elan + Niri 26.04.
+# Copy to ~/.config/elan-gesture/config.toml, then:
+#   systemctl --user restart elan-gesture.service
+#
+# Nothing here grabs the touchpad.  Niri/libinput keeps receiving every event,
+# so scopes that Niri already owns are marked provider = "niri" and the daemon
+# never dispatches them.  See docs/APPLE_GESTURES.md for the full matrix.
+
+[general]
+dry_run = false                 # flip to true for the first physical test run
+log_format = "text"
+log_level = "INFO"
+
+[device]
+match_name = "Elan Touchpad"
+match_vendor = 0x04F3
+match_product = 0x002F
+path = ""
+width_mm = 98.0
+height_mm = 60.0
+
+[gesture]
+trigger_on = "release"          # fire after the fingers lift, so Niri finishes first
+move_min_mm = 8.0
+static_max_mm = 1.5
+min_confidence = 0.65
+cooldown_ms = 350.0
+tap_max_ms = 220.0
+tap_max_mm = 2.5
+swipe_min_mm = 18.0
+spread_ratio_min = 0.18
+pinch_ratio_min = 0.18
+edge_trigger_mm = 15.0
+
+[niri]
+socket_env = "NIRI_SOCKET"
+timeout_ms = 1000
+
+# ---------------------------------------------------------------------------
+# 10. Look up / data detector — three-finger tap.
+# Reads the PRIMARY selection first; injects Ctrl+C only when it is empty.
+# ---------------------------------------------------------------------------
+[gestures.three_finger_tap]
+enabled = true
+provider = "daemon"
+finger_count = 3
+type = "command"
+description = "Look up selected text / detect URLs, dates, phone numbers"
+argv = ["python3", "-m", "elan_gesture.lookup"]
+
+# ---------------------------------------------------------------------------
+# 8. Notification centre — two-finger swipe inward from the right edge.
+# Prefers the M3 waybar control centre, then swaync, then mako history.
+# ---------------------------------------------------------------------------
+[gestures.two_finger_edge_left]
+enabled = true
+provider = "daemon"
+finger_count = 2
+edge = "right"
+type = "niri_dynamic"
+handler = "notify-center"
+
+# ---------------------------------------------------------------------------
+# 13. Mission Control — four-finger swipe up is niri's own overview gesture.
+# provider = "niri" keeps the daemon from toggling it a second time.
+# ---------------------------------------------------------------------------
+[gestures.four_finger_up]
+enabled = false
+provider = "niri"
+finger_count = 4
+type = "noop"
+description = "Handled natively by niri (overview)"
+
+# ---------------------------------------------------------------------------
+# 14. App Exposé — four-finger swipe down.
+# niri binds four-finger vertical swipes to overview open/close, so "auto"
+# queries OverviewState at gesture start: already open -> let niri close it,
+# otherwise cycle through the focused app's windows.
+# ---------------------------------------------------------------------------
+[gestures.four_finger_down]
+enabled = true
+provider = "auto"
+finger_count = 4
+type = "niri_dynamic"
+handler = "app-expose"
+
+# ---------------------------------------------------------------------------
+# 15. Swipe between full-screen apps — four-finger horizontal.
+# niri owns three-finger horizontal, so four-finger horizontal is free.
+# ---------------------------------------------------------------------------
+[gestures.four_finger_left]
+enabled = true
+provider = "daemon"
+finger_count = 4
+type = "niri_action"
+description = "Focus the column to the left"
+request_json = '{"Action":{"FocusColumnLeft":{}}}'
+
+[gestures.four_finger_right]
+enabled = true
+provider = "daemon"
+finger_count = 4
+type = "niri_action"
+description = "Focus the column to the right"
+request_json = '{"Action":{"FocusColumnRight":{}}}'
+
+# ---------------------------------------------------------------------------
+# 11. Show Desktop — thumb + three fingers spread apart.
+# Switches to an empty workspace, or comes back if one is already focused.
+# ---------------------------------------------------------------------------
+[gestures.thumb_spread_open]
+enabled = true
+provider = "daemon"
+finger_count = 4
+type = "niri_dynamic"
+handler = "show-desktop"
+
+# ---------------------------------------------------------------------------
+# 12. Launchpad — thumb + three fingers pinch together.
+# ---------------------------------------------------------------------------
+[gestures.thumb_spread_pinch]
+enabled = true
+provider = "daemon"
+finger_count = 4
+type = "command"
+description = "Application launcher"
+argv = ["fuzzel"]
+
+# ---------------------------------------------------------------------------
+# Alternative: inject a key chord instead of a built-in handler.
+# Requires ydotoold (niri starts it with spawn-at-startup "ydotoold").
+#
+# [gestures.three_finger_tap]
+# enabled = true
+# provider = "daemon"
+# finger_count = 3
+# type = "inject"
+# keys = ["ctrl", "f"]
+#
+# [gestures.four_finger_down]
+# enabled = true
+# provider = "daemon"
+# finger_count = 4
+# type = "inject"
+# keys = ["super", "d"]

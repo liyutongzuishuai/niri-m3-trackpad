@@ -1,0 +1,55 @@
+/*
+ * waybar-m3 · colors.css
+ * Material 3 深色配色方案（Purple 系）
+ *
+ * 这是整套配置唯一的颜色来源：style.css 与所有脚本都只按「角色名」引用颜色，
+ * 任何地方都不写死十六进制值。想换主题只要换掉这个文件。
+ *
+ * 角色名沿用 matugen 的下划线风格，因此可以直接用 `matugen` 生成的文件覆盖本文件，
+ * 配置与脚本无需改动（例如你现有的 ~/.config/waybar/colors.css）。
+ */
+
+/* ── Primary ─────────────────────────────────────────────── */
+@define-color primary                    #D2BCFC;
+@define-color on_primary                 #32226F;
+@define-color primary_container          #4C3889;
+@define-color on_primary_container       #E9DDFF;
+
+/* ── Secondary / Tertiary ────────────────────────────────── */
+@define-color secondary                  #CDC1E1;
+@define-color secondary_container        #4B425D;
+@define-color on_secondary_container     #E9DDFD;
+@define-color tertiary_container         #6C3644;
+@define-color on_tertiary_container      #FDDAE1;
+
+/* ── Surface ─────────────────────────────────────────────── */
+@define-color surface                    #141317;
+@define-color surface_container_low      #1C1B1F;
+@define-color surface_container          #201F23;
+@define-color surface_container_high     #2B292D;
+@define-color surface_container_highest  #363438;
+
+/* ── On-surface / Outline ────────────────────────────────── */
+@define-color on_surface                 #E4E1E7;
+@define-color on_surface_variant         #C9C4D1;
+@define-color outline                    #938F9B;
+@define-color outline_variant            #494550;
+
+/* ── Inverse ─────────────────────────────────────────────── */
+@define-color inverse_surface            #E4E1E7;
+@define-color inverse_on_surface         #313034;
+@define-color inverse_primary            #6750A4;
+
+/* ── Error ───────────────────────────────────────────────── */
+@define-color error                      #F2B8B5;
+@define-color on_error                   #601410;
+@define-color error_container            #8C1D18;
+@define-color on_error_container         #F9DEDC;
+
+/* ── 别名：只引用上面的角色，不引入新颜色 ────────────────── */
+@define-color background                 @surface;
+@define-color surface_dim                @surface;
+@define-color surface_bright             @surface_container_highest;
+@define-color surface_variant            @outline_variant;
+@define-color shadow                     @surface;
+@define-color scrim                      @surface;

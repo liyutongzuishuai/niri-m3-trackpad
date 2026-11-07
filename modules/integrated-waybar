@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Launch the unified Material 3 Waybar without relying on $HOME expansion in KDL.
+set -euo pipefail
+CONF="$HOME/.config/waybar-m3/config.jsonc"
+STYLE="$HOME/.config/waybar-m3/style.css"
+if [[ ! -r "$CONF" || ! -r "$STYLE" ]]; then
+    printf 'integrated-waybar: missing %s or %s\n' "$CONF" "$STYLE" >&2
+    printf 'Run: %s/scripts/install.sh --profile m3-waybar\n' "$(dirname "$(readlink -f "$0")")/../.." >&2
+    exit 1
+fi
+# Replace only this launcher, not every waybar process on the system.
+pkill -f 'integrated-waybar' 2>/dev/null || true
+exec /usr/bin/waybar -c "$CONF" -s "$STYLE" "$@"

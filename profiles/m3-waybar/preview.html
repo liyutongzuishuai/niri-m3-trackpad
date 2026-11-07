@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>waybar-m3 · 预览</title>
+<style>
+@font-face { font-family:"Material Symbols Rounded"; src:url("fonts/MaterialSymbolsRounded-subset.ttf"); }
+@font-face { font-family:"Roboto"; src:url("fonts/Roboto-subset.ttf"); }
+
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  font-family:"Roboto","Noto Sans CJK SC",sans-serif;
+  background:#0b0a0e; color:#e3e2e6; padding:24px 24px 40px;
+}
+h1 { font-size:19px; font-weight:500; margin-bottom:6px; }
+p.lead { color:#c4c6d0; font-size:13px; line-height:1.7; margin-bottom:20px; }
+code { font-family:ui-monospace,monospace; color:#a9c7ff; }
+figure.row { margin-bottom:22px; }
+figcaption { font-size:12px; color:#c4c6d0; margin-bottom:8px; }
+.badge {
+  display:inline-block; padding:1px 7px; border-radius:8px; font-size:11px;
+  background:#3c475b; color:#d5e0f9;
+}
+.badge.message { background:#885a8b; color:#ffffff; }
+.badge.idle { background:#333538; color:#c4c6d0; }
+.badge.旧 { background:#43474f; color:#c4c6d0; }
+
+.screen {
+  position:relative; width:1536px; border-radius:14px; overflow:hidden;
+  background:
+    radial-gradient(1000px 340px at 12% -10%, #3b2a63 0%, transparent 60%),
+    radial-gradient(800px 300px at 88% 120%, #123a4a 0%, transparent 55%),
+    linear-gradient(120deg, #1a1722 0%, #241f2e 45%, #14131a 100%);
+}
+/* 屏幕中线：用来核对中间那组是不是真的居中 */
+.centerline { position:absolute; left:50%; top:0; bottom:0; width:0;
+  border-left:1px dashed rgba(210,188,252,0.55); }
+
+/* ══ 以下数值与 style.css 逐条对应（基准字号 18px，1em = 18px）══
+   三区：左 / 中 / 右 —— grid 1fr auto 1fr，中间列天然落在中线上 */
+.bar { display:grid; grid-template-columns:1fr auto 1fr; align-items:center;
+  padding:0 16px; font-size:18px; font-weight:400; }
+.bar .zone { display:flex; align-items:center; }
+.bar .zone.left { justify-self:start; }
+.bar .zone.center { justify-self:center; }
+.bar .zone.right { justify-self:end; }
+.mi { font-family:"Material Symbols Rounded"; font-weight:normal; }
+.nf { font-family:"BitstromWera Nerd Font Propo"; font-size:0.694em; }
+.tray { display:flex; align-items:center; gap:6px; margin-left:8px; padding:0 12px;
+  min-height:38px; border-radius:19px;
+  background-color:color-mix(in srgb, #292a2d 88%, transparent); }
+.trayicon { width:32px; height:32px; border-radius:6px; }
+
+.ws {                                    /* #workspaces button */
+  min-width:40px; height:40px; border-radius:20px; padding:0 10px;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  font-size:18px; font-weight:500;
+  background:color-mix(in srgb, #3c475b 92%, transparent);
+  color:#d5e0f9;
+}
+.clock { margin-left:8px; padding:0 8px; font-size:22px; color:#e3e2e6; }
+.searchbar { display:flex; margin-left:8px; }
+.search {                               /* #custom-search */
+  min-height:40px; min-width:216px; padding:0 8px 0 16px;
+  border-radius:20px 0 0 20px; display:flex; align-items:center; gap:8px;
+  font-size:15px; color:#c4c6d0;
+  background:color-mix(in srgb, #292a2d 88%, transparent);
+}
+.mic {                                  /* #custom-mic */
+  min-width:40px; min-height:40px; padding:0 16px 0 6px;
+  border-radius:0 20px 20px 0; display:flex; align-items:center;
+  font-size:20px; color:#c4c6d0;
+  background:color-mix(in srgb, #292a2d 88%, transparent);
+}
+.media {                                /* #custom-media（modules-center）*/
+  margin:0 8px; padding:0 16px; min-width:412px; min-height:38px;
+  border-radius:19px; display:flex; align-items:center; justify-content:center;
+  font-size:22px; color:#e3e2e6; white-space:nowrap; overflow:hidden;
+  background:color-mix(in srgb, #292a2d 88%, transparent);
+}
+.media.message { background:color-mix(in srgb, #885a8b 92%, transparent); }
+.media.idle { font-size:15px; color:#c4c6d0; }
+
+.slider { position:relative; margin-left:8px; width:100px; height:30px;
+  display:flex; align-items:center; }
+.trough { width:100%; height:10px; border-radius:5px;
+  background-color:color-mix(in srgb, #3c475b 92%, transparent);
+  background-image:radial-gradient(circle closest-side, #c4c6d0 0%, #c4c6d0 65%, transparent 66%);
+  background-size:6px 6px; background-position:right center; background-repeat:no-repeat; }
+.highlight { height:10px; border-radius:5px; background:#a9c7ff; margin-right:4px; }
+.handle { position:absolute; top:50%; transform:translateY(-50%);
+  width:3px; height:30px; border-radius:2px; background:#a9c7ff; }
+
+/* 上一版（全塞 modules-left，34px 高）—— 只用于对比 */
+.bar.old { display:flex; }
+.bar.old .zone.left { justify-self:auto; }
+.bar.old .ws { min-width:30px; height:30px; border-radius:15px; padding:0 6px; font-size:16px; gap:4px; }
+.bar.old .clock { margin-left:6px; padding:0 5px; font-size:20px; }
+.bar.old .searchbar { margin-left:6px; }
+.bar.old .search { min-height:30px; min-width:144px; padding:0 6px 0 10px;
+  border-radius:15px 0 0 15px; font-size:14px; gap:6px; }
+.bar.old .mic { min-width:30px; min-height:30px; padding:0 10px 0 4px;
+  border-radius:0 15px 15px 0; font-size:20px; }
+.bar.old .media { margin:0 0 0 6px; padding:0 9px; min-width:234px; min-height:30px;
+  border-radius:15px; font-size:16px; }
+.bar.old .media.idle { font-size:14px; }
+.bar.old .slider { margin-left:8px; width:60px; height:20px; }
+.bar.old .trough, .bar.old .highlight { height:6px; border-radius:3px; }
+.bar.old .handle { width:4px; height:20px; }
+
+table { border-collapse:collapse; font-size:12px; margin-top:8px; }
+td, th { text-align:left; padding:4px 16px 4px 0; color:#c4c6d0; }
+th { color:#e3e2e6; font-weight:500; }
+</style></head><body>
+
+<h1>waybar-m3 · 预览（1536px 逻辑宽度 = 本机 eDP-1 上 bar 的实际宽度）</h1>
+<p class="lead">
+  三区布局：左 / 中 / 右，<span style="color:#a9c7ff">虚线是屏幕中线</span>，用来核对中间那组是否真的居中。<br>
+  颜色来自 <code>colors.css</code> 的 M3 角色；文案来自 <code>scripts/*.sh</code> 的真实输出
+  （时钟是当前时间，音量 28%、亮度 0% 是真实值）。bar 背景透明，这里垫了渐变壁纸。
+</p>
+
+
+<figure class="row">
+  <figcaption><span class="badge message">旧</span> 上一版：全塞在 modules-left，一行只占 45% 宽度</figcaption>
+  <div class="screen">
+    <div class="centerline"></div>
+    <div class="bar old"><div class="zone left"><div class="ws"><span class="nf"></span> 1</div><div class="clock">12:48:52</div><div class="searchbar"><div class="search"><span style="color:#c4c6d0;font-size:24px"></span>  <span style="color:#c4c6d0">搜索</span></div><div class="mic"><span class="mi"></span></div></div><div class="media message"><span foreground='#ffffff'>qq</span><span foreground='#ffffff'>：</span><span foreground='#ffffff'>女神</span></div><div class="tray"><div class="trayicon" style="background:#a9c7ff"></div><div class="trayicon" style="background:#bcc7df"></div><div class="trayicon" style="background:#ffffff"></div></div><div class="slider"><div class="trough"><div class="highlight" style="width:28%"></div></div><div class="handle" style="left:calc(28% - 2px)"></div></div><div class="slider"><div class="trough"><div class="highlight" style="width:0%"></div></div><div class="handle" style="left:calc(0% - 2px)"></div></div></div></div>
+  </div>
+</figure>
+<figure class="row">
+  <figcaption><span class="badge message">playing</span> 现在：左（Fedora 图标·时钟·搜索·mic）+ 中（容器框，对齐屏幕中线）+ 右（音量·亮度·tray）</figcaption>
+  <div class="screen">
+    <div class="centerline"></div>
+    <div class="bar"><div class="zone left"><div class="ws"><span class="nf"></span> 1</div><div class="clock">12:48:52</div><div class="searchbar"><div class="search"><span style="color:#c4c6d0;font-size:24px"></span>  <span style="color:#c4c6d0">搜索</span></div><div class="mic"><span class="mi"></span></div></div></div><div class="zone center"><div class="media message"><span foreground='#ffffff'>qq</span><span foreground='#ffffff'>：</span><span foreground='#ffffff'>女神</span></div></div><div class="zone right"><div class="tray"><div class="trayicon" style="background:#a9c7ff"></div><div class="trayicon" style="background:#bcc7df"></div><div class="trayicon" style="background:#ffffff"></div></div><div class="slider"><div class="trough"><div class="highlight" style="width:28%"></div></div><div class="handle" style="left:calc(28% - 2px)"></div></div><div class="slider"><div class="trough"><div class="highlight" style="width:0%"></div></div><div class="handle" style="left:calc(0% - 2px)"></div></div></div></div>
+  </div>
+</figure>
+<figure class="row">
+  <figcaption><span class="badge message">message</span> 没有音频输出、但有消息 → tertiaryContainer 底色</figcaption>
+  <div class="screen">
+    <div class="centerline"></div>
+    <div class="bar"><div class="zone left"><div class="ws"><span class="nf"></span> 1</div><div class="clock">12:48:52</div><div class="searchbar"><div class="search"><span style="color:#c4c6d0;font-size:24px"></span>  <span style="color:#c4c6d0">搜索</span></div><div class="mic"><span class="mi"></span></div></div></div><div class="zone center"><div class="media message"><span foreground='#ffffff'>qq</span><span foreground='#ffffff'>：</span><span foreground='#ffffff'>女神</span></div></div><div class="zone right"><div class="tray"><div class="trayicon" style="background:#a9c7ff"></div><div class="trayicon" style="background:#bcc7df"></div><div class="trayicon" style="background:#ffffff"></div></div><div class="slider"><div class="trough"><div class="highlight" style="width:28%"></div></div><div class="handle" style="left:calc(28% - 2px)"></div></div><div class="slider"><div class="trough"><div class="highlight" style="width:0%"></div></div><div class="handle" style="left:calc(0% - 2px)"></div></div></div></div>
+  </div>
+</figure>
+<figure class="row">
+  <figcaption><span class="badge idle">idle</span> 都没有 → 空状态提示</figcaption>
+  <div class="screen">
+    <div class="centerline"></div>
+    <div class="bar"><div class="zone left"><div class="ws"><span class="nf"></span> 1</div><div class="clock">12:48:52</div><div class="searchbar"><div class="search"><span style="color:#c4c6d0;font-size:24px"></span>  <span style="color:#c4c6d0">搜索</span></div><div class="mic"><span class="mi"></span></div></div></div><div class="zone center"><div class="media idle"><span foreground='#c4c6d0'>无音频输出 · 无消息</span></div></div><div class="zone right"><div class="tray"><div class="trayicon" style="background:#a9c7ff"></div><div class="trayicon" style="background:#bcc7df"></div><div class="trayicon" style="background:#ffffff"></div></div><div class="slider"><div class="trough"><div class="highlight" style="width:28%"></div></div><div class="handle" style="left:calc(28% - 2px)"></div></div><div class="slider"><div class="trough"><div class="highlight" style="width:0%"></div></div><div class="handle" style="left:calc(0% - 2px)"></div></div></div></div>
+  </div>
+</figure>
+
+<table>
+  <tr><th>位置</th><th>模块</th><th>M3 对应 / 尺寸</th></tr>
+  <tr><td>左</td><td>niri/workspaces</td><td>filled tonal icon button · 40px 圆 · Nerd Font Fedora logo (U+F30A)</td></tr>
+  <tr><td>左</td><td>clock</td><td>headlineMedium 缩比 · 22px · onSurface</td></tr>
+  <tr><td>左</td><td>custom/search + custom/mic</td><td>search bar · 40px 高 · 圆角 20px · surfaceContainerHigh</td></tr>
+  <tr><td>中</td><td>custom/media</td><td>容器框 · 412×38px · 圆角 19px · 正文 22px</td></tr>
+  <tr><td>右</td><td>pulseaudio/slider · backlight/slider</td><td>M3 Expressive slider · 轨道 10px · 手柄 3×30px · 末端 stop indicator</td></tr>
+  <tr><td>右</td><td>tray</td><td>系统托盘 · icon-size 32（waybar 默认 16 的两倍）· 图标由各应用提供，这里用色块占位</td></tr>
+</table>
+
+</body></html>

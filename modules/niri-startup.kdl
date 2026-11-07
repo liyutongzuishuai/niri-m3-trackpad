@@ -1,0 +1,4 @@
+// Drop-in snippet for ~/.config/niri/config.kdl.
+// Replace the plain `spawn-at-startup "waybar"` line with:
+spawn-at-startup "integrated-waybar"
+// This keeps the rest of lancetfish-niri-fedora's Niri config intact.

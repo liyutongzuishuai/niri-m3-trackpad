@@ -1,0 +1,215 @@
+// waybar-m3 · config.jsonc
+// 把「Material 3 Expressive Web 应用」提示词翻译成 waybar 配置。
+//
+// 提示词里的元素 → 这里的实现：
+//   图标按钮（public 图标，显示当前在哪个 workspace）  → niri/workspaces（current-only，单个 56dp 圆形色调按钮）
+//   文本「01:01:01」(28sp)                            → clock（headlineMedium，不可点击，符合“点击不加反馈”）
+//   搜索栏（类似 rofi，右端 mic）                      → custom/search + custom/mic，两个模块拼成一条 56dp 胶囊
+//   412×52 容器框 +「zen浏览器：我和我的祖国」          → custom/media（自动检测音频输出进程，无音频时检测消息）
+//   点击后从右侧滑入的「屏幕 1 副本」                   → scripts/panel.sh（swaync 优先，否则 fuzzel 右上角 M3 面板）
+//   滑块（初始 40%）×2：音量 / 亮度                    → pulseaudio/slider + backlight/slider（原生可拖动）
+//
+// 组件间距统一交给 style.css 的 margin 控制，所以这里的 spacing 是 0：
+// 这样 custom/search 与 custom/mic 才能无缝拼成一条胶囊。
+
+{
+    "layer": "top",
+    "position": "top",
+    // 不设 height：跟随内容自适应（当前实测 56px = 提示词的 56dp 按钮高度）
+    "spacing": 0,
+    "margin-top": 0,
+    "margin-left": 0,
+    "margin-right": 0,
+    "reload_style_on_change": true,
+
+    // 左右铺满 + 中间居中：
+    //   左  工作区按钮 · 时钟 · 搜索栏 · mic
+    //   中  容器框（草图中 6 个元素的第 4 个，正中间）—— fixed-center 让它对齐屏幕中线，
+    //       不加这一项时 waybar 只在「左右剩下的空间」里居中，两侧宽度不等就会偏。
+    //   右  tray · 音量 · 亮度
+    //       tray 在两根滑块左边，整组靠右对齐；tray 带 M3 胶囊底色（见 style.css）。
+    // 元素顺序仍与草图一致：图标 → 时钟 → 搜索 → 容器框 → 滑块。
+    "fixed-center": true,
+    "modules-left": [
+        "niri/workspaces",
+        "clock",
+        "custom/search",
+        "custom/mic"
+    ],
+    "modules-center": [
+        "custom/media"
+    ],
+    "modules-right": [
+        "tray",
+        "pulseaudio/slider",
+        "backlight/slider",
+        "battery",
+        "custom/wifi",
+        "custom/bluetooth",
+        "custom/panel"
+    ],
+
+    // ── tray（系统托盘）──────────────────────────────────────
+    // waybar 默认图标尺寸是 16（源码里 icon_size(16)），这里翻倍到 32；
+    // 它会把应用给的 pixbuf 缩放到这个尺寸，所以是精确的两倍。
+    "tray": {
+        "icon-size": 32,
+        "spacing": 6,
+        "show-passive-items": false
+    },
+
+    // ── 图标按钮：显示当前 workspace ──────────────────────────
+    // M3 filled tonal icon button：40px 圆形、secondaryContainer 底、onSecondaryContainer 内容。
+    // current-only 让它只显示一个按钮（草图就是一个图标按钮）；
+    // format 里同时给出图标和工作区编号，否则“显示在哪个 workspace”看不出来。
+    //
+    // 图标用 Nerd Font 的 Fedora logo（U+F30A = linux-fedora），并**显式指定字体族**：
+    // Nerd Font 的图标码点在 U+E000–F8FF 私用区，和 Material Symbols 撞码点 ——
+    // 实测 U+EF7A 在 Nerd Font 里是 fa-cheese（奶酪）、U+E31D 是 weather-thunderstorm，
+    // 正好是 search / mic 的码点。所以不能靠字体栈顺序碰运气，这里把字体族钉死在 span 上。
+    // size='x-small' 是量出来的：图标墨迹 18px ≈ 数字「1」的 17px，视觉等高。
+    "niri/workspaces": {
+        "format": "{icon} {value}",
+        "format-icons": {
+            "default": "<span font_family='BitstromWera Nerd Font Propo' size='x-small'>\uF30A</span>",
+            "focused": "<span font_family='BitstromWera Nerd Font Propo' size='x-small'>\uF30A</span>",
+            "active": "<span font_family='BitstromWera Nerd Font Propo' size='x-small'>\uF30A</span>",
+            "urgent": "<span font_family='BitstromWera Nerd Font Propo' size='x-small'>\uF30A</span>",
+            "empty": "<span font_family='BitstromWera Nerd Font Propo' size='x-small'>\uF30A</span>"
+        },
+        "current-only": true,
+        "all-outputs": true,
+        // 左键：工作区选择器（fuzzel，弹在左边）；右键：切到下一个工作区
+        "on-click": "~/.config/waybar-m3/scripts/workspace.sh pick",
+        "on-click-right": "~/.config/waybar-m3/scripts/workspace.sh next"
+    },
+
+    // ── 时钟：01:01:01（28sp = M3 headlineMedium）─────────────
+    "clock": {
+        "interval": 1,
+        "format": "{:%H:%M:%S}",
+        "tooltip-format": "{:%Y-%m-%d %A}"
+    },
+
+    // ── 搜索栏：左端 search 图标 + 占位文字「搜索」─────────────
+    "custom/search": {
+        "exec": "~/.config/waybar-m3/scripts/search.sh --bar",
+        "interval": "once",
+        "on-click": "~/.config/waybar-m3/scripts/search.sh --apps",
+        "on-click-right": "~/.config/waybar-m3/scripts/search.sh --windows",
+        "tooltip-format": "左键：应用搜索\n右键：窗口切换\n中键：计算 / 执行"
+    },
+
+    // ── 搜索栏右端的 mic 图标（与搜索栏拼成一条胶囊）──────────
+    // 码点以 Material Symbols Rounded 的官方 .codepoints 为准（mic = e31d）。
+    "custom/mic": {
+        "format": "\uE31D", // mic
+        "on-click": "~/.config/waybar-m3/scripts/mic.sh toggle",
+        "tooltip-format": "语音输入（需 nerd-dictation 或 whisper）"
+    },
+
+    // ── 容器框：谁在占用音频输出 / 有没有消息 ─────────────────
+    // 返回 JSON，用 class 区分三种状态，颜色由 style.css 按 M3 角色给：
+    //   playing → surfaceContainerHigh   message → tertiaryContainer   idle → surfaceContainerHigh + 弱化文字
+    "custom/media": {
+        "exec": "~/.config/waybar-m3/scripts/media.sh --bar",
+        "interval": 2,
+        "return-type": "json",
+        "escape": false,
+        "on-click": "~/.config/waybar-m3/scripts/panel.sh toggle",
+        "on-click-middle": "~/.config/waybar-m3/scripts/media.sh --playpause",
+        "on-click-right": "~/.config/waybar-m3/scripts/media.sh --focus"
+    },
+
+    // ── 滑块：音量（waybar 原生 pulseaudio/slider，可拖动）──────
+    // M3 Expressive 的粗轨道 + 竖长手柄由 style.css 里的 trough / highlight / slider
+    // 三个 CSS 节点画出来：轨道 0.33em(6px)，手柄 0.22em × 1.11em(4×20px)。
+    "pulseaudio/slider": {
+        "min": 0,
+        "max": 100,
+        "orientation": "horizontal"
+    },
+
+    // ── 滑块：亮度（waybar 原生 backlight/slider，可拖动）──────
+    "backlight/slider": {
+        "min": 0,
+        "max": 100,
+        "orientation": "horizontal"
+    },
+
+    // ── 电量：waybar 原生 battery 模块 ─────────────────────
+    // 不写脚本，直接读 /sys/class/power_supply/BAT0。
+    // states 让 waybar 自己加 warning / critical 两个 class，颜色交给 style.css。
+    // format 里的图标用 Material Symbols 的电池字形（子集字体已含这些码点）。
+    "battery": {
+        "states": {
+            "warning": 20,
+            "critical": 10
+        },
+        "interval": 30,
+        "format": "<span font_desc='Material Symbols Rounded 20'>{icon}</span><span font_desc='Roboto 15'>{capacity}%</span>",
+        "format-charging": "<span font_desc='Material Symbols Rounded 20'>\uE1A3</span><span font_desc='Roboto 15'>{capacity}%</span>",
+        "format-plugged": "<span font_desc='Material Symbols Rounded 20'>\uEBD4</span><span font_desc='Roboto 15'>{capacity}%</span>",
+        "format-full": "<span font_desc='Material Symbols Rounded 20'>\uE1A4</span><span font_desc='Roboto 15'>{capacity}%</span>",
+        "tooltip-format": "电量 {capacity}%\n{timeTo}",
+        "on-click": "~/.config/waybar-m3/scripts/control.sh open",
+        "on-click-right": "~/.config/waybar-m3/scripts/control.sh open"
+    },
+
+    // ── Wi-Fi 开关 ─────────────────────────────────────────
+    // 本机 /dev/rfkill 不存在，脚本走 nmcli radio wifi on|off。
+    // JSON 的 class 决定颜色：on → primary 实底，off → 灰，na → 更淡。
+    "custom/wifi": {
+        "exec": "~/.config/waybar-m3/scripts/wifi.sh --bar",
+        "return-type": "json",
+        "escape": false,
+        "interval": 5,
+        "tooltip": true,
+        "on-click": "~/.config/waybar-m3/scripts/wifi.sh toggle",
+        "on-click-right": "~/.config/waybar-m3/scripts/wifi.sh menu"
+    },
+
+    // ── 蓝牙开关 ───────────────────────────────────────────
+    // 本机没有蓝牙适配器，所以现在固定是 na 那一档；
+    // 接上适配器后脚本会自动给出 on / off，这里不用改。
+    "custom/bluetooth": {
+        "exec": "~/.config/waybar-m3/scripts/bluetooth.sh --bar",
+        "return-type": "json",
+        "escape": false,
+        "interval": 10,
+        "tooltip": true,
+        "on-click": "~/.config/waybar-m3/scripts/bluetooth.sh toggle",
+        "on-click-right": "~/.config/waybar-m3/scripts/bluetooth.sh menu"
+    },
+
+    // ── 控制中心按钮（tune 图标）────────────────────────────
+    "custom/panel": {
+        "exec": "printf '\\uE429'",
+        "interval": "once",
+        "tooltip-format": "控制中心\n电量 / Wi-Fi / 蓝牙 / 音量 / 亮度 / 勿扰 / 夜览 / 电源",
+        "on-click": "~/.config/waybar-m3/scripts/control.sh open"
+    }
+
+    // 如果你的 waybar 编译时没带 pulseaudio / backlight 支持（没有 slider 模块），
+    // 可以退回字形绘制的版本：删掉上面两个模块，改用下面这两段。
+    //
+    // "custom/volume": {
+    //     "exec": "~/.config/waybar-m3/scripts/slider.sh volume --bar",
+    //     "interval": 1,
+    //     "return-type": "json",
+    //     "escape": false,
+    //     "on-scroll-up": "~/.config/waybar-m3/scripts/slider.sh volume up",
+    //     "on-scroll-down": "~/.config/waybar-m3/scripts/slider.sh volume down",
+    //     "on-click": "~/.config/waybar-m3/scripts/slider.sh volume mute",
+    //     "on-click-right": "~/.config/waybar-m3/scripts/slider.sh volume popup"
+    // },
+    // "custom/brightness": {
+    //     "exec": "~/.config/waybar-m3/scripts/slider.sh brightness --bar",
+    //     "interval": 1,
+    //     "return-type": "json",
+    //     "escape": false,
+    //     "on-scroll-up": "~/.config/waybar-m3/scripts/slider.sh brightness up",
+    //     "on-scroll-down": "~/.config/waybar-m3/scripts/slider.sh brightness down",
+    //     "on-click": "~/.config/waybar-m3/scripts/slider.sh brightness popup"
+    // }
+}

@@ -1,0 +1,147 @@
+# elan-gesture default configuration.
+# Copy to ~/.config/elan-gesture/config.toml and edit; `kill -HUP` reloads it.
+# Coordinates and thresholds are in millimetres unless the key says _ms.
+
+[general]
+dry_run = false                 # true: daemon logs intended actions but never executes
+log_format = "text"             # text | json
+log_level = "INFO"              # DEBUG | INFO | WARNING | ERROR
+
+[device]
+match_name = "Elan Touchpad"
+match_vendor = 0x04F3
+match_product = 0x002F
+path = ""                       # "" = auto-discover; use by-path/eventN only for diagnostics
+width_mm = 98.0
+height_mm = 60.0                # udev reports 60 mm on this machine (user measured 61)
+units_per_mm_x = 0.0            # 0 = kernel resolution, then (max-min)/width_mm
+units_per_mm_y = 0.0
+reconnect_initial_ms = 200
+reconnect_max_ms = 5000
+
+[gesture]
+# --- asymmetric three-finger (existing behaviour) ---
+exact_contacts = 3
+settle_ms = 100.0
+static_max_mm = 1.5
+static_pair_mm = 2.0
+move_min_mm = 8.0
+axis_min_mm = 6.0
+max_orthogonal_ratio = 0.45
+direction_hold_ms = 60.0
+move_timeout_ms = 700.0
+session_timeout_ms = 1500.0
+min_confidence = 0.65
+cooldown_ms = 350.0
+trigger_on = "release"          # release | threshold; release reduces native Niri gesture overlap
+invert_x = false
+invert_y = false
+palm_major = 0                  # 0 = disabled; raise only after inspecting ABS_MT_TOUCH_MAJOR
+edge_margin_mm = 0.0            # 0 = disabled; e.g. 3.0 rejects edge-starting contacts
+
+# --- multi-finger recognizers (Apple gesture port) ---
+tap_max_ms = 220.0              # three-finger tap: maximum press-to-release time
+tap_max_mm = 2.5                # three-finger tap: maximum per-finger travel
+swipe_min_mm = 18.0             # four-finger swipe: minimum centroid travel
+swipe_axis_ratio = 0.35         # four-finger swipe: orthogonal / main axis limit
+swipe_angle_tolerance_deg = 25.0
+spread_ratio_min = 0.18         # thumb + three-finger spread: radial growth ratio
+pinch_ratio_min = 0.18          # thumb + three-finger pinch: radial shrink ratio
+thumb_edge_mm = 12.0            # thumb candidate bonus near the bottom edge
+edge_trigger_mm = 15.0          # two-finger edge swipe: start band and travel
+finger_change_timeout_ms = 800.0
+ipc_state_timeout_ms = 200.0    # read-only Niri state query budget during a gesture
+
+[niri]
+socket_env = "NIRI_SOCKET"
+timeout_ms = 1000
+
+# ---------------------------------------------------------------------------
+# Legacy four-direction asymmetric three-finger actions.
+# ---------------------------------------------------------------------------
+[actions.up]
+enabled = false
+type = "noop"
+description = "two static fingers + third finger up"
+
+[actions.down]
+enabled = false
+type = "noop"
+description = "two static fingers + third finger down"
+
+[actions.left]
+enabled = false
+type = "noop"
+description = "two static fingers + third finger left"
+
+[actions.right]
+enabled = false
+type = "noop"
+description = "two static fingers + third finger right"
+
+# ---------------------------------------------------------------------------
+# Apple trackpad gestures.  Everything is disabled by default; see
+# config/examples/apple-trackpad.toml for a ready-to-use mapping and
+# docs/APPLE_GESTURES.md for which gestures Niri already provides natively.
+#
+# provider: daemon  -> this program dispatches the action
+#           niri    -> the compositor already handles it; observe only
+#           auto    -> query Niri state first, then decide
+# ---------------------------------------------------------------------------
+
+[gestures.three_finger_tap]
+enabled = false
+provider = "daemon"
+finger_count = 3
+type = "noop"
+description = "Look up / data detector (Apple: three-finger tap)"
+
+[gestures.two_finger_edge_left]
+enabled = false
+provider = "daemon"
+finger_count = 2
+edge = "right"
+type = "noop"
+description = "Notification centre (Apple: two-finger swipe inward from right edge)"
+
+[gestures.four_finger_up]
+enabled = false
+provider = "niri"
+finger_count = 4
+type = "noop"
+description = "Mission Control (Apple) = niri overview, native four-finger vertical swipe"
+
+[gestures.four_finger_down]
+enabled = false
+provider = "auto"
+finger_count = 4
+type = "noop"
+description = "App Exposé (Apple: four-finger swipe down)"
+
+[gestures.four_finger_left]
+enabled = false
+provider = "daemon"
+finger_count = 4
+type = "noop"
+description = "Swipe between full-screen apps (Apple: four-finger swipe left)"
+
+[gestures.four_finger_right]
+enabled = false
+provider = "daemon"
+finger_count = 4
+type = "noop"
+description = "Swipe between full-screen apps (Apple: four-finger swipe right)"
+
+[gestures.thumb_spread_open]
+enabled = false
+provider = "daemon"
+finger_count = 4
+type = "noop"
+description = "Show Desktop (Apple: thumb + three fingers spread)"
+
+[gestures.thumb_spread_pinch]
+enabled = false
+provider = "daemon"
+finger_count = 4
+type = "noop"
+description = "Launchpad (Apple: thumb + three fingers pinch)"

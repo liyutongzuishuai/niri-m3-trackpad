@@ -1,0 +1,556 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8">
+<title>waybar-m3 · 设计稿 v2（Wi-Fi / 蓝牙开关 · 电量 · 控制中心）</title>
+<style>
+@font-face{font-family:'Material Symbols Rounded';
+  src:url('fonts/MaterialSymbolsRounded-subset.ttf') format('truetype')}
+@font-face{font-family:'Roboto';src:url('fonts/Roboto-subset.ttf') format('truetype')}
+:root{
+  --primary:#a9c7ff;
+  --on-primary:#0a305f;
+  --primary-container:#4d6b9d;
+  --on-primary-container:#ffffff;
+  --secondary:#bcc7df;
+  --secondary-container:#3c475b;
+  --on-secondary-container:#d5e0f9;
+  --tertiary-container:#885a8b;
+  --on-tertiary-container:#ffffff;
+  --surface:#121317;
+  --surface-container-low:#1a1c1f;
+  --surface-container:#1e2023;
+  --surface-container-high:#292a2d;
+  --surface-container-highest:#333538;
+  --on-surface:#e3e2e6;
+  --on-surface-variant:#c4c6d0;
+  --outline:#8d909a;
+  --outline-variant:#43474f;
+  --inverse-surface:#e3e2e6;
+  --inverse-on-surface:#2f3034;
+  --error:#ffb4ab;
+  --on-error:#690005;
+  --error-container:#93000a;
+  --on-error-container:#ffdad6;
+  --bar-w:1536px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0b0d;color:var(--on-surface);font-family:'Roboto',system-ui,sans-serif;
+  font-size:18px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.mi{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;
+  font-size:20px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+
+h1{font-size:26px;font-weight:500;margin:32px auto 6px;width:var(--bar-w)}
+h2{font-size:17px;font-weight:500;letter-spacing:.2px;margin:0 0 12px;color:var(--on-surface)}
+h2 .num{color:var(--primary);margin-right:8px}
+.lead{width:var(--bar-w);margin:0 auto 24px;color:var(--on-surface-variant);font-size:15px;
+  max-width:var(--bar-w)}
+.lead code{color:var(--primary);font-family:ui-monospace,monospace;font-size:13px}
+.section{width:var(--bar-w);margin:40px auto 0}
+.section > .note{width:auto;margin:10px 0 0}
+.note{color:var(--on-surface-variant);font-size:13px;line-height:1.7}
+.note code{color:var(--primary);font-family:ui-monospace,monospace;font-size:12px}
+
+/* ── 屏幕框 ── */
+.screen{position:relative;width:var(--bar-w);border-radius:18px;overflow:hidden;
+  background:linear-gradient(120deg,#1b2a4a,#3a2b4d 55%,#4a2b3a);
+  padding:14px 0 16px;}
+.centerline{position:absolute;left:50%;top:0;bottom:0;width:0;
+  border-left:1px dashed color-mix(in srgb,var(--primary) 60%,transparent)}
+figure.row{margin:0 0 26px}
+figcaption{width:var(--bar-w);margin:0 auto 8px;font-size:13px;color:var(--on-surface-variant)}
+.badge{display:inline-block;padding:1px 9px;border-radius:9px;font-size:11px;font-weight:500;
+  background:color-mix(in srgb,var(--primary) 26%,transparent);color:var(--primary);
+  margin-right:8px;vertical-align:1px}
+
+/* ── bar ── */
+.bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  height:40px;padding:0 16px}
+.zone{display:flex;align-items:center;height:40px}
+.zone.left{justify-content:flex-start;gap:8px}
+.zone.center{justify-content:center}
+.zone.right{justify-content:flex-end;gap:8px}
+
+.ws{display:flex;align-items:center;gap:6px;height:40px;min-width:40px;padding:0 10px;
+  border-radius:20px;background:color-mix(in srgb,var(--primary) 95%,transparent);
+  color:var(--on-primary);font-size:18px;font-weight:500}
+.nf{font-family:'BitstromWera Nerd Font Propo','Roboto';font-size:20px;line-height:1}
+.clock{font-size:22px;color:var(--on-surface);padding:0 8px}
+
+.searchbar{display:flex;align-items:center}
+.search{display:flex;align-items:center;gap:8px;height:40px;min-width:216px;padding:0 8px 0 16px;
+  border-radius:20px 0 0 20px;background:color-mix(in srgb,var(--sch) 88%,transparent);
+  color:var(--on-surface-variant);font-size:15px}
+.search .mi{font-size:20px}
+.mic{display:flex;align-items:center;justify-content:center;height:40px;width:40px;
+  border-radius:0 20px 20px 0;background:color-mix(in srgb,var(--sch) 88%,transparent);
+  color:var(--on-surface-variant);font-size:20px}
+
+.media{display:flex;align-items:center;gap:8px;height:38px;min-width:412px;padding:0 16px;
+  border-radius:19px;background:color-mix(in srgb,var(--sch) 88%,transparent);
+  color:var(--on-surface);font-size:22px;white-space:nowrap;overflow:hidden}
+.media .mi{font-size:22px;color:var(--on-surface-variant)}
+
+.tray{display:flex;align-items:center;gap:6px;height:38px;padding:0 12px;border-radius:19px;
+  background:color-mix(in srgb,var(--sch) 88%,transparent)}
+.tray i{display:block;width:18px;height:18px;border-radius:5px;background:var(--outline)}
+.tray i:nth-child(1){background:var(--primary)}
+.tray i:nth-child(2){background:var(--secondary)}
+.tray i:nth-child(3){background:var(--inverse-surface)}
+
+/* 滑块 */
+.slider{display:flex;align-items:center;gap:6px;height:40px}
+.sico{font-size:20px;color:var(--on-surface-variant)}
+.track{position:relative;width:100px;height:10px;border-radius:5px;
+  background:color-mix(in srgb,var(--secondary-container) 92%,transparent)}
+.track::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);
+  width:6px;height:6px;border-radius:50%;background:var(--on-surface-variant)}
+.fill{position:absolute;left:0;top:0;height:10px;border-radius:5px;background:var(--primary);
+  margin-right:4px}
+.handle{position:absolute;top:50%;transform:translate(-50%,-50%);width:3px;height:30px;
+  border-radius:2px;background:var(--primary)}
+
+/* ── 状态集群 ── */
+.cluster{display:flex;align-items:center;height:40px;gap:4px}
+.cell{display:flex;align-items:center;justify-content:center;height:38px;flex:none;
+  background:color-mix(in srgb,var(--sch) 88%,transparent);
+  color:var(--on-surface-variant);border-radius:19px;cursor:pointer;
+  transition:background .18s,color .18s}
+.cell.batt{gap:6px;padding:0 14px 0 12px;font-size:15px;font-weight:500;
+  color:var(--on-surface)}
+.cell.batt .mi{font-size:20px}
+.cell.batt.low{color:var(--on-error-container);
+  background:color-mix(in srgb,var(--error-container) 80%,transparent)}
+.cell.batt.low .mi{color:var(--on-error-container)}
+.cell.batt.charging{color:var(--on-primary);
+  background:color-mix(in srgb,var(--primary-container) 85%,transparent)}
+.cell.batt.icononly{padding:0;width:38px}
+.cell.batt.icononly .pct{display:none}
+.cell.tgl{width:38px;font-size:21px}
+.cell.tgl.on{background:color-mix(in srgb,var(--primary) 95%,transparent);color:var(--on-primary)}
+.cell.tgl.off{background:color-mix(in srgb,var(--sch) 88%,transparent);color:var(--outline)}
+.cell.tgl.na{background:color-mix(in srgb,var(--sch) 60%,transparent);
+  color:var(--outline-variant);cursor:default}
+.cell.tgl.panel{color:var(--on-surface-variant)}
+/* B：合并成一个分段胶囊 */
+.cluster.seg{gap:0;padding:0 4px;background:color-mix(in srgb,var(--sch) 88%,transparent);
+  border-radius:19px}
+.cluster.seg .cell{background:transparent;border-radius:15px;height:32px}
+.cluster.seg .cell.batt{padding:0 10px}
+.cluster.seg .div{width:1px;height:18px;background:var(--outline-variant);flex:none}
+.cluster.seg .cell.tgl.on{background:color-mix(in srgb,var(--primary) 95%,transparent)}
+
+.bar.narrow .track{width:87px}
+/* 交互演示 */
+.ccwrap.hidden{display:none}
+.cell.tgl{user-select:none}
+.demo-hint{width:var(--bar-w);margin:10px auto 0;font-size:13px;color:var(--on-surface-variant)}
+/* 状态画廊 */
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:14px;
+  width:var(--bar-w)}
+.gcard{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:16px;
+  background:color-mix(in srgb,var(--sc) 92%,transparent);
+  border:1px solid var(--outline-variant)}
+.gcard .cluster{height:38px}
+.gtxt{flex:1;min-width:0}
+.gt{font-size:14px;font-weight:500;color:var(--on-surface)}
+.gs{font-size:12px;color:var(--on-surface-variant)}
+
+/* ── 控制中心 ── */
+.ccwrap{display:flex;justify-content:flex-end;padding:0 16px}
+.cc{width:376px;border-radius:26px;padding:16px;font-size:14px;
+  background:color-mix(in srgb,var(--sch) 97%,transparent);
+  border:1px solid var(--outline-variant);box-shadow:0 16px 48px rgba(0,0,0,.5)}
+.cc-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.cc-title{font-size:19px;font-weight:500}
+.cc-date{font-size:12px;color:var(--on-surface-variant)}
+.cc-close{margin-left:auto;font-size:20px;color:var(--on-surface-variant);cursor:pointer}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.tile{display:flex;align-items:center;gap:8px;padding:10px;border-radius:20px;
+  min-width:0;background:color-mix(in srgb,var(--sc) 95%,transparent);
+  border:1px solid transparent;cursor:pointer}
+.tile.on{background:color-mix(in srgb,var(--primary) 95%,transparent);color:var(--on-primary)}
+.t-ico{font-size:22px;flex:none}
+.t-txt{flex:1;min-width:0}
+.t-label{font-size:13px;font-weight:500;line-height:1.3}
+.t-sub{font-size:11px;opacity:.78;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  line-height:1.35}
+.t-state{font-size:20px;flex:none;opacity:.85}
+.sliders{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.pslider{display:flex;align-items:center;gap:10px;height:26px}
+.pslider .mi{font-size:18px;color:var(--on-surface-variant);flex:none}
+.ptrack{position:relative;flex:1;height:12px;border-radius:6px;
+  background:color-mix(in srgb,var(--secondary-container) 92%,transparent)}
+.ptrack::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);
+  width:6px;height:6px;border-radius:50%;background:var(--on-surface-variant)}
+.pfill{position:absolute;left:0;top:0;height:12px;border-radius:6px;background:var(--primary)}
+.phandle{position:absolute;top:50%;transform:translate(-50%,-50%);width:4px;height:24px;
+  border-radius:2px;background:var(--primary)}
+.pval{font-size:11px;color:var(--on-surface-variant);width:32px;text-align:right;flex:none}
+.bcard{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:20px;
+  background:color-mix(in srgb,var(--sc) 95%,transparent);margin-bottom:12px}
+.b-ico{font-size:26px;color:var(--on-surface);flex:none}
+.bnum{font-size:22px;font-weight:500}
+.bsub{font-size:11px;color:var(--on-surface-variant);flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{font-size:11px;padding:4px 9px;border-radius:12px;flex:none;
+  background:color-mix(in srgb,var(--schh) 90%,transparent);color:var(--on-surface-variant);
+  display:flex;align-items:center;gap:3px}
+.chip .mi{font-size:14px}
+.plist{border-radius:20px;background:color-mix(in srgb,var(--sc) 95%,transparent);
+  padding:8px 6px;margin-bottom:12px}
+.plist-h{display:flex;align-items:center;gap:7px;padding:2px 10px 7px;font-size:12px;
+  color:var(--on-surface-variant)}
+.plist-h .mi{font-size:15px}
+.lrow{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:12px;font-size:13px}
+.lrow.active{background:color-mix(in srgb,var(--primary) 20%,transparent)}
+.lrow .mi{font-size:17px;color:var(--on-surface-variant);flex:none}
+.lrow.active .mi{color:var(--primary)}
+.lname{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lsig{font-size:11px;color:var(--on-surface-variant);flex:none}
+.lcheck{color:var(--primary)!important}
+.cc-foot{display:flex;gap:8px}
+.foot-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:9px;
+  border-radius:16px;font-size:12px;background:color-mix(in srgb,var(--sc) 95%,transparent);
+  color:var(--on-surface-variant);cursor:pointer}
+.foot-btn .mi{font-size:17px}
+
+/* ── 表格 ── */
+table{border-collapse:collapse;width:var(--bar-w);font-size:13px}
+th,td{text-align:left;padding:8px 16px 8px 0;vertical-align:top;
+  border-bottom:1px solid var(--outline-variant);color:var(--on-surface-variant)}
+th{color:var(--on-surface);font-weight:500;font-size:12px;letter-spacing:.3px;
+  text-transform:uppercase;opacity:.75}
+td:first-child{color:var(--on-surface);white-space:nowrap}
+td code,th code{font-family:ui-monospace,monospace;font-size:12px;color:var(--primary)}
+
+/* 待确认 */
+.todo{width:var(--bar-w);border-radius:18px;padding:16px 20px;margin-top:14px;
+  background:color-mix(in srgb,var(--primary) 10%,transparent);
+  border:1px solid color-mix(in srgb,var(--primary) 30%,transparent)}
+.todo ol{margin:6px 0 0 20px;font-size:13.5px;color:var(--on-surface-variant);line-height:2}
+.todo b{color:var(--on-surface)}
+footer{width:var(--bar-w);margin:40px auto 60px;color:var(--outline);font-size:12px}
+/* 对齐自检徽标（由页面内 JS 实测后填入） */
+.align{display:flex;justify-content:center;padding:6px 0 0}
+.align span{font-size:11px;padding:2px 10px;border-radius:10px;
+  font-family:ui-monospace,monospace;letter-spacing:.2px}
+.align .ok{background:color-mix(in srgb,#4caf50 22%,transparent);color:#8bd88f}
+.align .off{background:color-mix(in srgb,var(--error) 20%,transparent);color:var(--error)}
+
+</style></head><body>
+
+<h1>waybar-m3 · 设计稿 v2：Wi-Fi / 蓝牙开关 · 电量 · 控制中心</h1>
+<p class="lead">
+  这是<b>纯 HTML 设计稿</b>，配色全部取自 <code>colors.css</code> 的 M3 角色，尺寸沿用
+  <code>style.css</code> 的换算法（1em = 18px，bar 内边距 16px，模块间距 8px，bar 高 40px），
+  所以下面看到的就是 waybar 里真实的比例。文案尽量取本机真实状态。<br>
+  <b>先确认这一版设计，确认之后我再动 config.jsonc / style.css / scripts。</b>
+</p>
+
+<div class="section">
+<h2><span class="num">1</span>现在的右侧（改造前）</h2>
+<figure class="row"><figcaption>右区只有 托盘 + 音量 + 亮度，没有状态开关</figcaption>
+  <div class="screen"><div class="centerline"></div><div class="bar">
+  <div class="zone left"><div class="ws"><span class="nf"></span> 1</div>
+    <div class="clock">23:02</div>
+    <div class="searchbar"><div class="search"><span class="mi"></span><span>搜索</span></div>
+      <div class="mic"><span class="mi "></span></div></div></div>
+  <div class="zone center"><div class="media"><span class="mi "></span><span>宁静的星夜 · 电台</span></div></div>
+  <div class="zone right"><div class="tray"><i></i><i></i><i></i></div>
+    <div class="slider" title="22%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:22%"></div><div class="handle" style="left:22%"></div></div></div><div class="slider" title="60%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:60%"></div><div class="handle" style="left:60%"></div></div></div></div>
+</div><div class="align"></div></div></figure>
+</div>
+
+<div class="section">
+<h2><span class="num">2</span>三种方案全做一遍（每个都配两种滑块宽度）</h2>
+
+<figure class="row"><figcaption><span class="badge">A · 滑块 100px（现状）</span>
+  四个独立胶囊，电量带百分比。右区需要 572px，超出可用宽度 546px</figcaption>
+  <div class="screen"><div class="centerline"></div><div class="bar">
+  <div class="zone left"><div class="ws"><span class="nf"></span> 1</div>
+    <div class="clock">23:02</div>
+    <div class="searchbar"><div class="search"><span class="mi"></span><span>搜索</span></div>
+      <div class="mic"><span class="mi "></span></div></div></div>
+  <div class="zone center"><div class="media"><span class="mi "></span><span>宁静的星夜 · 电台</span></div></div>
+  <div class="zone right"><div class="tray"><i></i><i></i><i></i></div>
+    <div class="slider" title="22%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:22%"></div><div class="handle" style="left:22%"></div></div></div><div class="slider" title="60%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:60%"></div><div class="handle" style="left:60%"></div></div></div>
+    <div class="cluster"><div class="cell batt" title="电量 80%"><span class="mi "></span><span class="pct">80%</span></div><div class="cell tgl on" title="Wi-Fi：A401_5G · 信号 50%"><span class="mi "></span></div><div class="cell tgl on" title="蓝牙：已开启（未连接设备）"><span class="mi "></span></div><div class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div></div>
+</div><div class="align"></div></div></figure>
+
+<figure class="row"><figcaption><span class="badge">A · 滑块 87px</span>
+  同上，只把音量/亮度轨道各缩 13px，「A 的完整形态」</figcaption>
+  <div class="screen"><div class="centerline"></div><div class="bar narrow">
+  <div class="zone left"><div class="ws"><span class="nf"></span> 1</div>
+    <div class="clock">23:02</div>
+    <div class="searchbar"><div class="search"><span class="mi"></span><span>搜索</span></div>
+      <div class="mic"><span class="mi "></span></div></div></div>
+  <div class="zone center"><div class="media"><span class="mi "></span><span>宁静的星夜 · 电台</span></div></div>
+  <div class="zone right"><div class="tray"><i></i><i></i><i></i></div>
+    <div class="slider" title="22%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:22%"></div><div class="handle" style="left:22%"></div></div></div><div class="slider" title="60%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:60%"></div><div class="handle" style="left:60%"></div></div></div>
+    <div class="cluster"><div class="cell batt" title="电量 80%"><span class="mi "></span><span class="pct">80%</span></div><div class="cell tgl on" title="Wi-Fi：A401_5G · 信号 50%"><span class="mi "></span></div><div class="cell tgl on" title="蓝牙：已开启（未连接设备）"><span class="mi "></span></div><div class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div></div>
+</div><div class="align"></div></div></figure>
+
+<figure class="row"><figcaption><span class="badge">B · 滑块 100px</span>
+  合并成分段胶囊，中间 1px 分隔线；右区 565px，仍差 19px</figcaption>
+  <div class="screen"><div class="centerline"></div><div class="bar">
+  <div class="zone left"><div class="ws"><span class="nf"></span> 1</div>
+    <div class="clock">23:02</div>
+    <div class="searchbar"><div class="search"><span class="mi"></span><span>搜索</span></div>
+      <div class="mic"><span class="mi "></span></div></div></div>
+  <div class="zone center"><div class="media"><span class="mi "></span><span>宁静的星夜 · 电台</span></div></div>
+  <div class="zone right"><div class="tray"><i></i><i></i><i></i></div>
+    <div class="slider" title="22%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:22%"></div><div class="handle" style="left:22%"></div></div></div><div class="slider" title="60%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:60%"></div><div class="handle" style="left:60%"></div></div></div>
+    <div class="cluster seg"><div class="cell batt" title="电量 80%"><span class="mi "></span><span class="pct">80%</span></div><span class="div"></span><div class="cell tgl on" title="Wi-Fi：A401_5G · 信号 50%"><span class="mi "></span></div><span class="div"></span><div class="cell tgl on" title="蓝牙：已开启（未连接设备）"><span class="mi "></span></div><span class="div"></span><div class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div></div>
+</div><div class="align"></div></div></figure>
+
+<figure class="row"><figcaption><span class="badge">B · 滑块 87px</span>
+  窄滑块之后回到中线</figcaption>
+  <div class="screen"><div class="centerline"></div><div class="bar narrow">
+  <div class="zone left"><div class="ws"><span class="nf"></span> 1</div>
+    <div class="clock">23:02</div>
+    <div class="searchbar"><div class="search"><span class="mi"></span><span>搜索</span></div>
+      <div class="mic"><span class="mi "></span></div></div></div>
+  <div class="zone center"><div class="media"><span class="mi "></span><span>宁静的星夜 · 电台</span></div></div>
+  <div class="zone right"><div class="tray"><i></i><i></i><i></i></div>
+    <div class="slider" title="22%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:22%"></div><div class="handle" style="left:22%"></div></div></div><div class="slider" title="60%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:60%"></div><div class="handle" style="left:60%"></div></div></div>
+    <div class="cluster seg"><div class="cell batt" title="电量 80%"><span class="mi "></span><span class="pct">80%</span></div><span class="div"></span><div class="cell tgl on" title="Wi-Fi：A401_5G · 信号 50%"><span class="mi "></span></div><span class="div"></span><div class="cell tgl on" title="蓝牙：已开启（未连接设备）"><span class="mi "></span></div><span class="div"></span><div class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div></div>
+</div><div class="align"></div></div></figure>
+
+<figure class="row"><figcaption><span class="badge">C · 滑块 100px</span>
+  电量只显示图标，右区 530px，什么都不用改就居中</figcaption>
+  <div class="screen"><div class="centerline"></div><div class="bar">
+  <div class="zone left"><div class="ws"><span class="nf"></span> 1</div>
+    <div class="clock">23:02</div>
+    <div class="searchbar"><div class="search"><span class="mi"></span><span>搜索</span></div>
+      <div class="mic"><span class="mi "></span></div></div></div>
+  <div class="zone center"><div class="media"><span class="mi "></span><span>宁静的星夜 · 电台</span></div></div>
+  <div class="zone right"><div class="tray"><i></i><i></i><i></i></div>
+    <div class="slider" title="22%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:22%"></div><div class="handle" style="left:22%"></div></div></div><div class="slider" title="60%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:60%"></div><div class="handle" style="left:60%"></div></div></div>
+    <div class="cluster"><div class="cell batt icononly" title="电量 80%"><span class="mi "></span></div><div class="cell tgl on" title="Wi-Fi：A401_5G · 信号 50%"><span class="mi "></span></div><div class="cell tgl on" title="蓝牙：已开启（未连接设备）"><span class="mi "></span></div><div class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div></div>
+</div><div class="align"></div></div></figure>
+
+<p class="note">
+  每张图下面那枚徽标是页面<b>实测</b>的中线偏移，不是手写数字。
+  结论：<b>A</b> 信息最全，代价是滑块要缩到 87px；<b>B</b> 最紧凑，同样要缩滑块；
+  <b>C</b> 唯一零改动，但看不到百分比。三者开关的状态色完全一致，换方案只影响排布。
+</p>
+</div>
+
+<div class="section">
+<h2><span class="num">3</span>可交互演示（真的能点）</h2>
+<div class="screen" id="demo-screen">
+  <div class="centerline"></div>
+  <div class="bar">
+  <div class="zone left"><div class="ws"><span class="nf"></span> 1</div>
+    <div class="clock">23:02</div>
+    <div class="searchbar"><div class="search"><span class="mi"></span><span>搜索</span></div>
+      <div class="mic"><span class="mi "></span></div></div></div>
+  <div class="zone center"><div class="media"><span class="mi "></span><span>宁静的星夜 · 电台</span></div></div>
+  <div class="zone right"><div class="tray"><i></i><i></i><i></i></div>
+    <div class="slider" title="22%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:22%"></div><div class="handle" style="left:22%"></div></div></div><div class="slider" title="60%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:60%"></div><div class="handle" style="left:60%"></div></div></div>
+    <div class="cluster"><div id="d-batt" class="cell batt" title="电量 80%"><span class="mi "></span><span class="pct">80%</span></div><div id="d-wifi" class="cell tgl on" title="Wi-Fi：A401_5G · 信号 50%"><span class="mi "></span></div><div id="d-bt" class="cell tgl on" title="蓝牙：已开启（未连接设备）"><span class="mi "></span></div><div id="d-cc" class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div></div>
+</div>
+  <div class="ccwrap hidden" id="d-ccwrap">
+    <div class="cc">
+    <div class="cc-h"><span class="cc-title">控制中心</span>
+      <span class="cc-date">10月23日 周五</span>
+      <span class="mi cc-close"></span></div>
+    <div class="grid2"><div class="tile on"><span class="mi t-ico"></span><div class="t-txt"><div class="t-label">Wi-Fi</div><div class="t-sub">A401_5G</div></div><span class="mi t-state"></span></div><div class="tile"><span class="mi t-ico"></span><div class="t-txt"><div class="t-label">蓝牙</div><div class="t-sub">无适配器</div></div><span class="mi t-state"></span></div><div class="tile"><span class="mi t-ico"></span><div class="t-txt"><div class="t-label">勿扰</div><div class="t-sub">关闭</div></div><span class="mi t-state"></span></div><div class="tile"><span class="mi t-ico"></span><div class="t-txt"><div class="t-label">夜览</div><div class="t-sub">关闭</div></div><span class="mi t-state"></span></div></div>
+    <div class="sliders"><div class="pslider"><span class="mi"></span><div class="ptrack"><div class="pfill" style="width:22%"></div><div class="phandle" style="left:22%"></div></div><span class="pval">22%</span></div>
+      <div class="pslider"><span class="mi"></span><div class="ptrack"><div class="pfill" style="width:60%"></div><div class="phandle" style="left:60%"></div></div><span class="pval">60%</span></div></div>
+    <div class="bcard"><span class="mi b-ico"></span>
+      <span class="bnum">80%</span>
+      <span class="bsub">充电中</span>
+      <span class="chip"><span class="mi "></span> 节电</span></div>
+    <div class="plist"><div class="plist-h"><span class="mi"></span>可用网络</div>
+      <div class="lrow active"><span class="mi"></span><span class="lname">A401_5G</span><span class='mi lcheck'></span><span class="lsig">50%</span></div><div class="lrow"><span class="mi"></span><span class="lname">A401</span><span class="lsig">80%</span></div><div class="lrow"><span class="mi"></span><span class="lname">H3C-WiFi5-4040</span><span class="lsig">77%</span></div><div class="lrow"><span class="mi"></span><span class="lname">JY-WiFi</span><span class="lsig">70%</span></div><div class="lrow"><span class="mi"></span><span class="lname">H3C-WiFi5-4040-5G</span><span class="lsig">60%</span></div></div>
+    <div class="cc-foot">
+      <span class="foot-btn"><span class="mi"></span>锁定</span>
+      <span class="foot-btn"><span class="mi"></span>注销</span>
+      <span class="foot-btn"><span class="mi"></span>重启</span>
+    </div>
+</div>
+  </div>
+</div>
+<p class="note">
+  点 <b>Wi-Fi</b> / <b>蓝牙</b> 可切换开、关；点 <b>tune</b> 展开/收起控制中心；
+  点电量胶囊也能打开控制中心。这里只是看交互手感，不会真的去动系统。
+</p>
+</div>
+
+<div class="section">
+<h2><span class="num">4</span>各种状态怎么表现</h2>
+<div class="gal"><div class="gcard"><div class="cluster"><div class="cell batt" title="电量 80%"><span class="mi "></span><span class="pct">80%</span></div><div class="cell tgl on" title="Wi-Fi：A401_5G · 信号 50%"><span class="mi "></span></div><div class="cell tgl on" title="蓝牙：已开启 · WH-1000XM5"><span class="mi "></span></div><div class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div><div class="gtxt"><div class="gt">Wi-Fi 已连接 · 蓝牙已连耳机</div><div class="gs">两个开关都点亮，实底 primary</div></div></div><div class="gcard"><div class="cluster"><div class="cell batt" title="电量 80%"><span class="mi "></span><span class="pct">80%</span></div><div class="cell tgl off" title="Wi-Fi：已关闭"><span class="mi "></span></div><div class="cell tgl on" title="蓝牙：已开启（未连接设备）"><span class="mi "></span></div><div class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div><div class="gtxt"><div class="gt">Wi-Fi 已关闭</div><div class="gs">图标换 wifi_off，底色回到 surface_container_high</div></div></div><div class="gcard"><div class="cluster"><div class="cell batt" title="电量 80%"><span class="mi "></span><span class="pct">80%</span></div><div class="cell tgl on" title="Wi-Fi：A401_5G · 信号 50%"><span class="mi "></span></div><div class="cell tgl off" title="蓝牙：已关闭"><span class="mi "></span></div><div class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div><div class="gtxt"><div class="gt">蓝牙已开启、未连设备</div><div class="gs">图标用 bluetooth（无线状态），仍是 ON 色</div></div></div><div class="gcard"><div class="cluster"><div class="cell batt" title="电量 80%"><span class="mi "></span><span class="pct">80%</span></div><div class="cell tgl on" title="Wi-Fi：A401_5G · 信号 50%"><span class="mi "></span></div><div class="cell tgl na" title="蓝牙：本机无适配器"><span class="mi "></span></div><div class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div><div class="gtxt"><div class="gt">蓝牙：无适配器</div><div class="gs">本机当前就是这种：降低不透明度，不可点</div></div></div><div class="gcard"><div class="cluster"><div class="cell batt charging" title="电量 88%"><span class="mi "></span><span class="pct">88%</span></div><div class="cell tgl off" title="Wi-Fi：已关闭"><span class="mi "></span></div><div class="cell tgl off" title="蓝牙：已关闭"><span class="mi "></span></div><div class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div><div class="gtxt"><div class="gt">充电中 · 88%</div><div class="gs">图标 battery_charging_full，primary_container 底色</div></div></div><div class="gcard"><div class="cluster"><div class="cell batt low" title="电量 15%"><span class="mi "></span><span class="pct">15%</span></div><div class="cell tgl on" title="Wi-Fi：A401_5G · 信号 50%"><span class="mi "></span></div><div class="cell tgl on" title="蓝牙：已开启（未连接设备）"><span class="mi "></span></div><div class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div><div class="gtxt"><div class="gt">低电量 15%</div><div class="gs">切到 error 色系，并触发告警图标 battery_alert</div></div></div><div class="gcard"><div class="cluster"><div class="cell batt" title="电量 100%"><span class="mi "></span><span class="pct">100%</span></div><div class="cell tgl on" title="Wi-Fi：A401_5G · 信号 50%"><span class="mi "></span></div><div class="cell tgl on" title="蓝牙：已开启（未连接设备）"><span class="mi "></span></div><div class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div><div class="gtxt"><div class="gt">满电 100%</div><div class="gs">battery_full</div></div></div></div>
+<p class="note">
+  ON = <code>primary</code> 实底 + <code>on_primary</code> 图标；OFF = <code>surface_container_high</code>
+  底 + <code>outline</code> 图标；不可用 = 底色与图标同时降透明度 + 标签显示「无适配器」。
+  电量 &lt; 15% 切 <code>error</code> 色系，充电时换 <code>battery_charging_full</code> 并改成
+  <code>primary_container</code> 底色。
+</p>
+</div>
+
+<div class="section">
+<h2><span class="num">5</span>本机真实状态（下面这条是照当前系统画的）</h2>
+<figure class="row"><figcaption><span class="badge">真实</span>
+  电量 80% · Wi-Fi A401_5G · 蓝牙 无适配器</figcaption>
+  <div class="screen"><div class="centerline"></div><div class="bar">
+  <div class="zone left"><div class="ws"><span class="nf"></span> 1</div>
+    <div class="clock">23:02</div>
+    <div class="searchbar"><div class="search"><span class="mi"></span><span>搜索</span></div>
+      <div class="mic"><span class="mi "></span></div></div></div>
+  <div class="zone center"><div class="media"><span class="mi "></span><span>宁静的星夜 · 电台</span></div></div>
+  <div class="zone right"><div class="tray"><i></i><i></i><i></i></div>
+    <div class="slider" title="22%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:22%"></div><div class="handle" style="left:22%"></div></div></div><div class="slider" title="60%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:60%"></div><div class="handle" style="left:60%"></div></div></div>
+    <div class="cluster"><div class="cell batt charging" title="电量 80%"><span class="mi "></span><span class="pct">80%</span></div><div class="cell tgl on" title="Wi-Fi：A401_5G · 信号 50%"><span class="mi "></span></div><div class="cell tgl na" title="蓝牙：本机无适配器"><span class="mi "></span></div><div class="cell tgl panel" title="控制中心"><span class="mi "></span></div></div></div>
+</div><div class="align"></div></div></figure>
+</div>
+
+<div class="section">
+<h2><span class="num">6</span>控制中心（点 tune 按钮弹出，贴右上角）</h2>
+<div class="screen" style="padding-bottom:20px">
+  <div class="bar">
+  <div class="zone left"><div class="ws"><span class="nf"></span> 1</div>
+    <div class="clock">23:02</div>
+    <div class="searchbar"><div class="search"><span class="mi"></span><span>搜索</span></div>
+      <div class="mic"><span class="mi "></span></div></div></div>
+  <div class="zone center"><div class="media"><span class="mi "></span><span>宁静的星夜 · 电台</span></div></div>
+  <div class="zone right"><div class="tray"><i></i><i></i><i></i></div>
+    <div class="slider" title="22%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:22%"></div><div class="handle" style="left:22%"></div></div></div><div class="slider" title="60%"><span class="mi sico"></span><div class="track"><div class="fill" style="width:60%"></div><div class="handle" style="left:60%"></div></div></div>
+    <div class="cluster"><div class="cell batt charging" title="电量 80%"><span class="mi "></span><span class="pct">80%</span></div><div class="cell tgl on" title="Wi-Fi：A401_5G · 信号 50%"><span class="mi "></span></div><div class="cell tgl na" title="蓝牙：本机无适配器"><span class="mi "></span></div><div class="cell tgl panel" title="控制中心" style="outline:2px solid var(--primary);outline-offset:1px"><span class="mi "></span></div></div></div>
+</div>
+  <div class="ccwrap"><div class="cc">
+    <div class="cc-h"><span class="cc-title">控制中心</span>
+      <span class="cc-date">10月23日 周五</span>
+      <span class="mi cc-close"></span></div>
+    <div class="grid2"><div class="tile on"><span class="mi t-ico"></span><div class="t-txt"><div class="t-label">Wi-Fi</div><div class="t-sub">A401_5G</div></div><span class="mi t-state"></span></div><div class="tile"><span class="mi t-ico"></span><div class="t-txt"><div class="t-label">蓝牙</div><div class="t-sub">无适配器</div></div><span class="mi t-state"></span></div><div class="tile"><span class="mi t-ico"></span><div class="t-txt"><div class="t-label">勿扰</div><div class="t-sub">关闭</div></div><span class="mi t-state"></span></div><div class="tile"><span class="mi t-ico"></span><div class="t-txt"><div class="t-label">夜览</div><div class="t-sub">关闭</div></div><span class="mi t-state"></span></div></div>
+    <div class="sliders"><div class="pslider"><span class="mi"></span><div class="ptrack"><div class="pfill" style="width:22%"></div><div class="phandle" style="left:22%"></div></div><span class="pval">22%</span></div>
+      <div class="pslider"><span class="mi"></span><div class="ptrack"><div class="pfill" style="width:60%"></div><div class="phandle" style="left:60%"></div></div><span class="pval">60%</span></div></div>
+    <div class="bcard"><span class="mi b-ico"></span>
+      <span class="bnum">80%</span>
+      <span class="bsub">充电中</span>
+      <span class="chip"><span class="mi "></span> 节电</span></div>
+    <div class="plist"><div class="plist-h"><span class="mi"></span>可用网络</div>
+      <div class="lrow active"><span class="mi"></span><span class="lname">A401_5G</span><span class='mi lcheck'></span><span class="lsig">50%</span></div><div class="lrow"><span class="mi"></span><span class="lname">A401</span><span class="lsig">80%</span></div><div class="lrow"><span class="mi"></span><span class="lname">H3C-WiFi5-4040</span><span class="lsig">77%</span></div><div class="lrow"><span class="mi"></span><span class="lname">JY-WiFi</span><span class="lsig">70%</span></div><div class="lrow"><span class="mi"></span><span class="lname">H3C-WiFi5-4040-5G</span><span class="lsig">60%</span></div></div>
+    <div class="cc-foot">
+      <span class="foot-btn"><span class="mi"></span>锁定</span>
+      <span class="foot-btn"><span class="mi"></span>注销</span>
+      <span class="foot-btn"><span class="mi"></span>重启</span>
+    </div>
+</div></div>
+</div>
+<p class="note">
+  2×2 开关卡（Wi-Fi / 蓝牙 / 勿扰 / 夜览）+ 音量亮度滑块 + 电量卡 + Wi-Fi 列表 + 锁定/注销/重启。
+  总高约 600px，在 1536×960 的逻辑屏上留得出底部空间。
+</p>
+</div>
+
+<div class="section">
+<h2><span class="num">7</span>设计规格 → waybar 实现</h2>
+<table>
+  <tr><th>位置</th><th>模块</th><th>M3 角色 / 尺寸</th><th>左键</th><th>右键</th></tr>
+  <tr><td>右</td><td><code>custom/battery</code></td><td>胶囊 38px 高 · 图标 20px + 15px 数字 · radius 19</td>
+      <td>打开控制中心</td><td>百分比 / 仅图标 切换</td></tr>
+  <tr><td>右</td><td><code>custom/wifi</code></td><td>38×38 圆 · ON <code>primary</code> / OFF <code>outline</code></td>
+      <td>开/关 Wi-Fi</td><td>网络列表</td></tr>
+  <tr><td>右</td><td><code>custom/bluetooth</code></td><td>38×38 圆 · 同上一套状态色</td>
+      <td>开/关蓝牙</td><td>已配对设备</td></tr>
+  <tr><td>右</td><td><code>custom/panel</code></td><td>38×38 圆 · <code>tune</code> 图标</td>
+      <td>开/关控制中心</td><td>—</td></tr>
+  <tr><td>面板</td><td>开关卡 ×4</td><td>卡片 radius 20 · ON 实底 primary</td>
+      <td>切换</td><td>—</td></tr>
+  <tr><td>面板</td><td>滑块 ×2</td><td>轨道 12px · 手柄 4×24</td>
+      <td>拖动 / 点击定位</td><td>静音</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2><span class="num">8</span>实现方式（确认后才动手）</h2>
+<p class="note">
+  · Wi-Fi 开关用 <code>nmcli radio wifi on|off</code>（本机 <code>/dev/rfkill</code> 不可用，不能用 rfkill）<br>
+  · 蓝牙开关用 <code>bluetoothctl power on|off</code>；本机 <code>bluetoothctl list</code> 为空，
+    即<b>当前没有蓝牙适配器</b>，会一直落在「不可用」那一档，接上适配器后自动恢复<br>
+  · 电量走 waybar 原生 <code>battery</code> 模块（BAT0），只做样式，不写脚本<br>
+  · 控制中心第一版用 fuzzel 列表实现（和现有 <code>scripts/panel.sh</code> 同一套），
+    开关行用 fuzzel 的 dmenu 模式；如果想要真正的图形面板，再单独做 GTK/浏览器面板
+</p>
+</div>
+
+<div class="todo">
+<h2 style="margin-bottom:4px">还差你拍板的两件事</h2>
+<ol>
+  <li>状态集群选 <b>A</b> / <b>B</b> / <b>C</b>？（第 2 节三种都做了，每张图下面有实测中线偏移）</li>
+  <li>如果选 A 或 B：滑块轨道<b>缩到 87px</b> 换中线对齐，还是保持 100px 接受偏移？
+      选 C 则不用动滑块。</li>
+</ol>
+<p style="margin:10px 0 0;font-size:13px;color:var(--on-surface-variant)">
+  已定：控制中心开关卡 = <b>Wi-Fi / 蓝牙 / 勿扰 / 夜览</b>；右侧顺序 = 托盘 → 音量 → 亮度 → 电量 → Wi-Fi → 蓝牙 → 控制中心。
+</p>
+</div>
+
+<footer>由 tools/build-design.py 生成 · 颜色来自 colors.css · 尺寸对齐 style.css</footer>
+
+
+<script>
+// 逐个 bar 实测「中间那个胶囊」相对屏幕中线的偏移，写回徽标。
+// 必须等字体加载完再量，否则用的是 fallback 字体宽度，数字会偏。
+function annotateAlign() {
+  document.querySelectorAll('figure.row').forEach(function (fig) {
+    var scr = fig.querySelector('.screen');
+    var med = fig.querySelector('.media');
+    var slot = fig.querySelector('.align');
+    if (!scr || !med || !slot || slot.dataset.done) return;
+    var s = scr.getBoundingClientRect();
+    var m = med.getBoundingClientRect();
+    var off = Math.round((m.left + m.width / 2) - (s.left + s.width / 2));
+    var span = document.createElement('span');
+    if (off === 0) { span.className = 'ok'; span.textContent = '中线对齐 0 px'; }
+    else { span.className = 'off';
+           span.textContent = '中线偏移 ' + (off > 0 ? '+' : '') + off + ' px'; }
+    slot.appendChild(span);
+    slot.dataset.done = '1';
+  });
+}
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(annotateAlign);
+} else {
+  window.addEventListener('load', annotateAlign);
+}
+window.addEventListener('resize', annotateAlign);
+
+// ── 交互演示：Wi-Fi / 蓝牙 / 控制中心 ──
+(function () {
+  var G = { wifi: '', wifi_off: '', bt: '', bt_on: '' };
+  var icon = function (el) { return el.querySelector('.mi'); };
+
+  function bindToggle(id, onGlyph, offGlyph, onTip, offTip) {
+    var el = document.getElementById(id);
+    if (!el || el.classList.contains('na')) return;
+    el.addEventListener('click', function () {
+      var on = el.classList.contains('on');
+      el.classList.remove('on', 'off');
+      el.classList.add(on ? 'off' : 'on');
+      icon(el).textContent = on ? offGlyph : onGlyph;
+      el.title = on ? offTip : onTip;
+    });
+  }
+  bindToggle('d-wifi', G.wifi, G.wifi_off, 'Wi-Fi：A401_5G · 信号 52%', 'Wi-Fi：已关闭');
+  bindToggle('d-bt', G.bt_on, G.bt, '蓝牙：已开启', '蓝牙：已关闭');
+
+  var ccBtn = document.getElementById('d-cc');
+  var ccWrap = document.getElementById('d-ccwrap');
+  if (ccBtn && ccWrap) {
+    ccBtn.addEventListener('click', function () {
+      ccWrap.classList.toggle('hidden');
+      ccBtn.classList.toggle('active', !ccWrap.classList.contains('hidden'));
+    });
+  }
+  var batt = document.getElementById('d-batt');
+  if (batt && ccWrap) {
+    batt.addEventListener('click', function () { ccWrap.classList.remove('hidden'); });
+  }
+  // 面板里的关闭按钮
+  var ccClose = ccWrap && ccWrap.querySelector('.cc-close');
+  if (ccClose) ccClose.addEventListener('click', function () { ccWrap.classList.add('hidden'); });
+})();
+</script>
+
+</body></html>

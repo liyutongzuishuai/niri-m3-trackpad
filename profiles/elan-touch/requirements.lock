@@ -1,0 +1,7 @@
+# Python 3.14 / Fedora 44 x86_64 lockfile
+# `evdev-binary` installs importable top-level module `evdev` (2.0.0), avoiding
+# a source build (python3-devel is absent) and avoiding root package installation.
+evdev-binary==2.0.0 \
+    --hash=sha256:21a10b2d2f16f087693817f5d51c87b196ff2777d7d7ec9565b8763eeecaa3f8 \
+    # wheel: evdev_binary-2.0.0-cp314-cp314-manylinux1_x86_64.manylinux_2_34_x86_64.manylinux_2_5_x86_64.whl (113853 bytes)
+# Source: https://files.pythonhosted.org/packages/d0/0b/3d79b01fb41be9993adc991d35129ed78603f595054d0922fcff4ddd134c/evdev_binary-2.0.0-cp314-cp314-manylinux1_x86_64.manylinux_2_34_x86_64.manylinux_2_5_x86_64.whl

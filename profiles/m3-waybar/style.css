@@ -1,0 +1,454 @@
+/*
+ * waybar-m3 · style.css
+ * Material 3 Expressive（Purple 系，仅深色）
+ *
+ * ══ 两个方向分开调 ═══════════════════════════════════════════
+ * 横向（决定「铺满」的观感，改大改小不影响高度）：
+ *     容器框   #custom-media      min-width  22.89em = 412px
+ *     搜索栏   #custom-search     min-width  12em    = 216px
+ *     滑块轨道 #*-slider trough   min-width  4.83em  = 87px（新增状态集群后收窄，两根共让出 26px）
+ *
+ * 竖直（决定「扁平度」，现在整条 bar 40px 高）：
+ *     图标按钮 #workspaces button       min-height 2.22em = 40px
+ *     搜索栏   #custom-search           min-height 2.22em = 40px
+ *     mic      #custom-mic              min-height 2.22em = 40px
+ *     容器框   #custom-media            min-height 2.11em = 38px
+ *     滑块轨道 #*-slider trough         min-height 0.56em = 10px
+ *     滑块手柄 #*-slider slider         min-height 1.67em = 30px
+ *   bar 的高度 = 上面最大的那个（现在是 40px）。想更扁就一起往下压这几个数。
+ *
+ * 字号是第三个旋钮，写在各自的 #模块 label 上：
+ *     时钟 / 容器框正文 1.22em = 22px · mic 图标 1.11em = 20px · 搜索占位 0.83em = 15px
+ *
+ * ── 关于 em 的一个坑（踩过，记在这里）────────────────────────
+ * CSS 的 em 按「元素自己的 font-size」解析。若把 font-size 与 min-height 写在同一个选择器上，
+ * 例如 #custom-media { font-size: 1.56em; min-height: 2.89em }，2.89em 会按 28px 算 = 81px，
+ * 而不是想要的 52px（实测 bar 高会变成 82px）。所以本文件的分工是：
+ *     盒子尺寸（min-width / min-height / padding / margin / border-radius）→ 写在模块上，
+ *        模块字号保持基准 18px；文字大小（font-size）→ 写在 #模块 label 上。
+ *
+ * 颜色全部按 M3 角色名引用（见 colors.css），本文件不写死任何颜色值。
+ * 半透明统一 alpha(..., 0.88)：比 0.7 更能看清 M3 的色块层次。
+ * 动效 MotionScheme.standard()：cubic-bezier(0.2, 0, 0, 1)，平滑不回弹。
+ * GTK3 限制：没有 transform / 涟漪，按下缩放无法实现，用 M3 的 state layer 代替。
+ */
+
+@import "colors.css";
+
+/* ── 基础 ─────────────────────────────────────────────────── */
+
+* {
+    font-family: "Roboto", "Noto Sans CJK SC", "Material Symbols Rounded", sans-serif;
+    font-size: 18px; /* 基准字号：1em = 18px。它是盒子尺寸的换算基准 */
+    font-weight: 400;
+    border: none;
+    border-radius: 0;
+    margin: 0;
+}
+
+window#waybar {
+    background: transparent; /* 背景透明（唯一偏离草图的地方） */
+    color: @on_surface;
+    padding: 0 0.89em; /* 屏幕边缘 16dp */
+}
+
+tooltip {
+    background: alpha(@surface_container_highest, 0.96);
+    border: 2px solid @outline_variant;
+    border-radius: 12px;
+    padding: 8px 12px;
+}
+
+tooltip label {
+    color: @on_surface;
+    font-size: 14px;
+}
+
+/* ── 图标按钮：M3 filled tonal icon button ───────────────── */
+/* 显示当前 workspace；public 图标 + 工作区编号都在按钮里。
+   40px 高 → 圆角 20px，仍是圆形。 */
+
+#workspaces,
+#niri-workspaces {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+}
+
+#workspaces button,
+#niri-workspaces button {
+    min-width: 2.22em;  /* 40px */
+    min-height: 2.22em;
+    padding: 0 0.56em;
+    margin: 0;
+    border-radius: 1.11em; /* 20px = 高度一半 → 圆形 */
+    background-color: alpha(@secondary_container, 0.92);
+    color: @on_secondary_container;
+    transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1),
+                color 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+#workspaces button label,
+#niri-workspaces button label {
+    font-size: 1em; /* 18px */
+    font-weight: 500;
+}
+
+/* 当前工作区：M3 selected 用 primary */
+#workspaces button.focused,
+#workspaces button.active,
+#niri-workspaces button.focused,
+#niri-workspaces button.active {
+    background-color: alpha(@primary, 0.95);
+    color: @on_primary;
+}
+
+#workspaces button.empty,
+#niri-workspaces button.empty {
+    background-color: alpha(@surface_container_high, 0.88);
+    color: @on_surface_variant;
+}
+
+#workspaces button.urgent,
+#niri-workspaces button.urgent {
+    background-color: alpha(@error_container, 0.95);
+    color: @on_error_container;
+}
+
+/* M3 state layer：悬停 8%、按下 12% */
+#workspaces button:hover,
+#niri-workspaces button:hover {
+    background-image: linear-gradient(alpha(@on_surface, 0.08), alpha(@on_surface, 0.08));
+}
+
+#workspaces button:active,
+#niri-workspaces button:active {
+    background-image: linear-gradient(alpha(@on_surface, 0.12), alpha(@on_surface, 0.12));
+}
+
+/* ── 时钟：01:01:01 ──────────────────────────────────────── */
+/* 纯文本，按提示词要求点击不给反馈，所以没有 hover / active 规则。 */
+
+#clock {
+    margin-left: 0.44em; /* 8px */
+    padding: 0 0.44em;
+    color: @on_surface;
+}
+
+#clock label {
+    font-size: 1.22em; /* 22px */
+}
+
+/* ── 搜索栏：完全圆角（左端 search 图标 + 占位文字）──────── */
+/* custom/search 与 custom/mic 相邻，靠左右圆角拼成一条胶囊，中间不留缝。 */
+
+#custom-search {
+    margin-left: 0.44em;
+    margin-right: 0;
+    padding: 0 0.44em 0 0.89em; /* 0 8px 0 16px */
+    min-height: 2.22em; /* 40px */
+    min-width: 12em;    /* 216px ← 横向：想更宽改这里 */
+    border-radius: 1.11em 0 0 1.11em;
+    background-color: alpha(@surface_container_high, 0.88);
+    color: @on_surface_variant; /* 占位文字用 onSurfaceVariant */
+    transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+#custom-search label {
+    font-size: 0.83em; /* 15px */
+}
+
+#custom-search:hover {
+    background-color: alpha(@surface_container_highest, 0.92);
+}
+
+#custom-mic {
+    margin-left: 0;
+    padding: 0 0.89em 0 0.33em; /* 0 16px 0 6px */
+    min-width: 2.22em;
+    min-height: 2.22em;
+    border-radius: 0 1.11em 1.11em 0;
+    background-color: alpha(@surface_container_high, 0.88);
+    color: @on_surface_variant;
+    transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1),
+                color 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+#custom-mic label {
+    font-size: 1.11em; /* 20px */
+}
+
+#custom-mic:hover {
+    background-color: alpha(@surface_container_highest, 0.92);
+    color: @on_surface;
+}
+
+/* ── 容器框：扁版 412×38，圆角 19，surfaceContainerHigh ──── */
+/* 放在 modules-center，所以左右 margin 必须对称，否则偏离屏幕中线。
+   class 由 media.sh 的 JSON 给出：
+     playing → 常规底色      message → tertiaryContainer      idle → 常规底色 + 弱化文字 */
+
+#custom-media {
+    margin: 0 0.44em;
+    padding: 0 0.89em; /* 左右各 16px */
+    min-width: 22.89em;  /* 412px ← 横向：想更宽改这里 */
+    min-height: 2.11em;  /* 38px  ← 竖直：想更扁改这里 */
+    border-radius: 1.06em; /* 19px = 高度一半 */
+    background-color: alpha(@surface_container_high, 0.88);
+    color: @on_surface;
+    transition: background-color 300ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+#custom-media label {
+    font-size: 1.22em; /* 22px */
+}
+
+#custom-media.message {
+    background-color: alpha(@tertiary_container, 0.92);
+}
+
+#custom-media.idle label {
+    font-size: 0.83em; /* 空状态是说明文字 */
+    color: @on_surface_variant;
+}
+
+/* ── 滑块：M3 Expressive（粗轨道 + 竖长手柄）─────────────── */
+/* 用 waybar 原生的 pulseaudio/slider 与 backlight/slider：可拖动、可点击定位。
+   CSS 节点：trough(未填充) / highlight(已填充) / slider(手柄)。
+   扁版：轨道 10px、手柄 4×30px。横向从 100px 收到 87px ——
+   右区要放下「电量 + 三个开关」，两根滑块各让 13px，中间那条胶囊才对得回屏幕中线。 */
+
+#pulseaudio-slider,
+#backlight-slider {
+    margin-left: 0.44em;
+    padding: 0;
+    background: transparent;
+}
+
+#pulseaudio-slider trough,
+#backlight-slider trough {
+    min-width: 4.67em;  /* 84px ← 横向：想更长/更短改这里（改完务必用 tools/probe-bar.sh 核对中线） */
+    min-height: 0.56em; /* 10px  ← 竖直：想更扁改这里 */
+    border-radius: 0.28em;
+    background-color: alpha(@secondary_container, 0.92);
+    /* 轨道末端的 stop indicator（M3 Expressive 的小圆点，设计稿里有）：
+       GTK 没有对应的 CSS 节点，用径向渐变画在轨道右端。
+       注意 background-position 只支持两段式写法 —— `right 2px center` 会报
+       "Junk at end of value for background-position"。 */
+    background-image: radial-gradient(circle closest-side,
+                        @on_surface_variant 0%, @on_surface_variant 65%, transparent 66%);
+    background-size: 0.33em 0.33em; /* 6px 圆点 */
+    background-position: right center;
+    background-repeat: no-repeat;
+}
+
+#pulseaudio-slider highlight,
+#backlight-slider highlight {
+    border-radius: 0.28em;
+    background-color: @primary;
+    /* 设计稿里填充胶囊和手柄之间有一道缝（M3 Expressive 的 handle gap） */
+    margin-right: 0.22em; /* 4px */
+}
+
+#pulseaudio-slider slider,
+#backlight-slider slider {
+    min-width: 0.17em;  /* 3px 手柄宽（M3 规范：手柄宽 / 轨道 ≈ 0.25，10px 轨道 → 2.5px） */
+    min-height: 1.67em; /* 30px ← 竖直：手柄高度 */
+    /* ★ 关键：竖直方向用负 margin，让手柄「溢出」细轨道。
+       GtkScale 会把手柄高度算进控件高度，然后把手柄高度的空间都摊给 trough ——
+       实测 margin: 0 时填充轨道高达 31px（看着就是一根粗条），
+       margin: -0.56em(=-(30-10)/2) 时轨道回到 11px、手柄 31px，两者同心。
+       Adwaita 自己也是用负 margin 让圆形手柄溢出细轨道的。 */
+    margin: -0.56em 0;
+    border-radius: 0.11em;
+    background-color: @primary;
+    background-image: none;
+    box-shadow: none;
+    transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+#pulseaudio-slider slider:hover,
+#backlight-slider slider:hover {
+    background-color: @on_primary_container;
+}
+
+/* ── tray（系统托盘）────────────────────────────────────── */
+/* 位置在两根滑块左边；底色用 M3 容器色 + 半高圆角，和搜索栏/容器框是同一套语言。 */
+
+#tray {
+    margin-left: 0.44em;
+    padding: 0 0.67em;
+    min-height: 2.11em;    /* 38px，和容器框同高，视觉上排成一条 */
+    border-radius: 1.06em; /* 19px = 半高 → 胶囊，和其他胶囊同一套圆角规则 */
+    background-color: alpha(@surface_container_high, 0.88);
+    transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+#tray:hover {
+    background-color: alpha(@surface_container_highest, 0.92);
+}
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}
+
+#tray > .needs-attention {
+    -gtk-icon-effect: highlight;
+}
+
+/* 托盘右键菜单：跟 tooltip 用同一套 M3 配色 */
+#tray menu {
+    background: alpha(@surface_container_highest, 0.96);
+    border: 2px solid @outline_variant;
+    border-radius: 12px;
+    padding: 6px;
+}
+
+#tray menu menuitem {
+    color: @on_surface;
+    border-radius: 8px;
+    padding: 6px 10px;
+}
+
+#tray menu menuitem:hover {
+    background-color: alpha(@primary, 0.25);
+}
+
+/* ══════════════════════════════════════════════════════════
+ * 右侧状态集群：电量 · Wi-Fi · 蓝牙 · 控制中心
+ *
+ * 顺序（config.jsonc 的 modules-right 末尾）：
+ *   … backlight/slider → battery → custom/wifi → custom/bluetooth → custom/panel
+ *
+ * 间距规则：滑块到电量 8px（0.44em，和原有模块一致）；
+ * 电量与三个按钮之间只留 4px（0.22em），让它们抱成一团、读起来是一个「状态组」。
+ * 尺寸：电量胶囊 38px 高 / 19px 圆角（和容器框同高）；三个按钮 38×38 圆形。
+ * ══════════════════════════════════════════════════════════ */
+
+/* ── 电量 ─────────────────────────────────────────────────── */
+/* waybar 原生 battery 模块，class 由它自己加：charging / plugged /
+   warning / critical / full。图标与数字都在同一个 label 里，
+   图标 20px、数字用 <span size='small'> 缩到约 17px。 */
+
+#battery {
+    margin-left: 0.44em;
+    padding: 0 0.50em 0 0.39em;   /* 9px / 7px：图标和数字贴紧，胶囊别显得空 */
+    min-height: 2.11em;      /* 38px */
+    border-radius: 1.06em;   /* 19px = 半高 → 胶囊 */
+    background-color: alpha(@surface_container_high, 0.88);
+    color: @on_surface;
+    transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1),
+                color 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+#battery label {
+    /* 字号在 config.jsonc 的 format 里用 font_desc 分开指定
+       （图标 20px / 数字 15px）。这里不再设 font-size，
+       否则会跟 pango 的 font_desc 打架。 */
+    letter-spacing: 0.02em;   /* 图标与数字之间微调，别让它们贴死 */
+}
+
+/* 插着电 / 正在充：换成 primaryContainer，和「开关打开」是同一套语言 */
+#battery.charging,
+#battery.plugged {
+    background-color: alpha(@primary_container, 0.85);
+    color: @on_primary_container;
+}
+
+/* 低电量：warning 只是变淡的红，critical 才是实底 error */
+#battery.warning:not(.charging) {
+    background-color: alpha(@error_container, 0.45);
+    color: @error;
+}
+
+#battery.critical:not(.charging) {
+    background-color: alpha(@error_container, 0.95);
+    color: @on_error_container;
+}
+
+/* ── Wi-Fi / 蓝牙 / 控制中心：38px 圆形图标按钮 ───────────── */
+/* class 来自脚本输出的 JSON：
+     on  → primary 实底 + on_primary（开关打开）
+     off → surfaceContainerHigh 底 + outline 图标（开关关闭）
+     na  → 底色和图标一起降透明度（没有硬件 / 没有工具） */
+
+#custom-wifi,
+#custom-bluetooth,
+#custom-panel {
+    margin-left: 0.17em;     /* 3px：三个按钮之间（收 1px 是为了把中线拉回来，见文件末尾注释） */
+    padding: 0;
+    min-width: 2.11em;       /* 38px */
+    min-height: 2.11em;
+    border-radius: 1.06em;
+    background-color: alpha(@surface_container_high, 0.88);
+    color: @outline;
+    transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1),
+                color 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+#custom-wifi label,
+#custom-bluetooth label,
+#custom-panel label {
+    font-size: 1.11em;       /* 20px，和 mic 图标同号 */
+}
+
+#custom-panel {
+    color: @on_surface_variant;
+    /* 不加 margin-right：右区宽度已经贴着可用空间的上限，
+       任何多余留白都会把中间胶囊挤离中线（见文件末尾的中线核算）。 */
+}
+
+#custom-wifi.on,
+#custom-bluetooth.on {
+    background-color: alpha(@primary, 0.95);
+    color: @on_primary;
+}
+
+#custom-wifi.na,
+#custom-bluetooth.na {
+    /* 不可用 ≠ 更暗。实际壁纸下「降透明度 + 细边」会糊成一团，
+       反而比正常的 off 按钮更看不清。
+       这里用更实、更深的底色（surface 方向）+ outline 图标 + 2px outline_variant 边框，
+       让它在壁纸上有明确边界，一眼能认出「在这，但用不了」。 */
+    background-color: alpha(@surface, 0.78);
+    color: @outline;
+    border: 2px solid alpha(@outline_variant, 0.95);
+}
+
+/* M3 state layer：悬停 8%、按下 12%（GTK3 没有 transform，用叠加层代替） */
+#custom-wifi:hover,
+#custom-bluetooth:hover,
+#custom-panel:hover {
+    background-image: linear-gradient(alpha(@on_surface, 0.08), alpha(@on_surface, 0.08));
+}
+
+#custom-wifi.on:hover,
+#custom-bluetooth.on:hover {
+    background-image: linear-gradient(alpha(@on_primary, 0.10), alpha(@on_primary, 0.10));
+}
+
+/* 不可用的按钮不给 hover 反馈，避免以为能点 */
+#custom-wifi.na:hover,
+#custom-bluetooth.na:hover {
+    background-image: none;
+}
+
+/* ══════════════════════════════════════════════════════════
+ * 中线核算（改右区任何模块宽度前必读）
+ *
+ * waybar 的 fixed-center 把中间胶囊钉在屏幕中线，但前提是「左右两区都不超过
+ * 各自可用宽度」。一旦超出，中间胶囊就会被挤离中线：
+ *
+ *     可用宽度 = (1536 屏宽 - 32 左右内边距 - 444 中间胶囊) / 2 = 530.0
+ *
+ * 当前实测：左区 388.8  右区 529.6  → 中线偏移 -0.8px（与改造前一致，算对齐）
+ *
+ * 右区只剩 0.4px 余量了。要加新模块，必须先从这里让出等量宽度：
+ *     两根滑块轨道  4.67em = 84px（每缩 1px 让 2px）
+ *     电量胶囊      padding 左右合计 16px
+ *     三个按钮      相互间距 3px
+ *
+ * 验证方法：
+ *     tools/probe-bar.sh .test-runtime/style-tag.css
+ * 它会用带色标的临时样式跑一次 waybar、截屏，直接报出实测偏移。
+ * ══════════════════════════════════════════════════════════ */

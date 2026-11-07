@@ -1,0 +1,15 @@
+# Minimal read access for the Elan Touchpad gesture daemon.
+# Grants the active seat user a uaccess ACL on this ONE event node.
+# Install as /etc/udev/rules.d/72-elan-touchpad-gesture-uaccess.rules.
+# The 72 prefix is REQUIRED: 73-seat-late.rules runs the `uaccess` builtin
+# only for devices that already carry TAG=="uaccess".
+# Apply with:
+#   udevadm control --reload
+#   udevadm trigger --action=change --name-match=input/event11
+ACTION=="remove", GOTO="elan_gesture_end"
+SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_TOUCHPAD}=="1", \
+  ENV{ID_PATH}=="pci-0000:00:1f.4", \
+  ATTRS{name}=="Elan Touchpad", \
+  ATTRS{id/vendor}=="04f3", ATTRS{id/product}=="002f", \
+  TAG+="uaccess"
+LABEL="elan_gesture_end"

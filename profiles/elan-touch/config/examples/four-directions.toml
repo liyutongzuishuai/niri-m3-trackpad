@@ -1,0 +1,78 @@
+# Copy to ~/.config/elan-gesture/config.toml.
+# Four different action styles, one per direction. All run as your normal user;
+# no X11, no Touchegg, no root daemon.
+
+[general]
+dry_run = false                 # set true while testing the four directions
+log_format = "text"
+log_level = "INFO"
+
+[device]
+match_name = "Elan Touchpad"
+match_vendor = 0x04F3
+match_product = 0x002F
+path = ""
+width_mm = 98.0
+height_mm = 60.0
+
+[gesture]
+trigger_on = "release"
+move_min_mm = 8.0
+static_max_mm = 1.5
+min_confidence = 0.65
+cooldown_ms = 350.0
+
+[niri]
+socket_env = "NIRI_SOCKET"
+timeout_ms = 1000
+
+# UP: direct Niri IPC built-in action (single JSON request, no subprocess).
+[actions.up]
+enabled = true
+type = "niri_action"
+description = "Previous workspace / focus workspace up"
+request_json = '{"Action":{"FocusWorkspaceUp":{}}}'
+
+# DOWN: Niri IPC SpawnSh. Use a shell string only when you need quoting/pipes.
+[actions.down]
+enabled = true
+type = "niri_spawn_sh"
+description = "Desktop notification through the compositor"
+command = "notify-send 'elan-gesture' 'third finger DOWN'"
+
+# LEFT: Niri IPC Spawn with argv (no shell injection surface).
+[actions.left]
+enabled = true
+type = "niri_spawn"
+description = "Focus the column to the left via niri msg"
+argv = ["niri", "msg", "action", "focus-column-left"]
+
+# RIGHT: ordinary Wayland user command, invoked directly by the daemon.
+[actions.right]
+enabled = true
+type = "command"
+description = "Player next track with playerctl"
+argv = ["playerctl", "next"]
+command_timeout_ms = 3000
+
+# Alternative: all four directions as terse niri_action requests:
+#
+# [actions.up]
+# enabled = true
+# type = "niri_action"
+# request_json = '{"Action":{"FocusWorkspaceUp":{}}}'
+#
+# [actions.down]
+# enabled = true
+# type = "niri_action"
+# request_json = '{"Action":{"FocusWorkspaceDown":{}}}'
+#
+# [actions.left]
+# enabled = true
+# type = "niri_action"
+# request_json = '{"Action":{"FocusColumnLeft":{}}}'
+#
+# [actions.right]
+# enabled = true
+# type = "niri_action"
+# request_json = '{"Action":{"FocusColumnRight":{}}}'

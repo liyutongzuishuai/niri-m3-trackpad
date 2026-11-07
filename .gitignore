@@ -1,0 +1,20 @@
+# Python runtime
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Installer / validator runtime artefacts (regenerated locally)
+.sandbox/
+docs/validation-check.log
+
+# Real-machine captures, logs and probe output (privacy / not portable)
+**/docs/captures/
+*.log
+**/docs/probe.json
+**/docs/evidence.txt
+logs/
+
+# Editor / OS
+.DS_Store
+*.swp
