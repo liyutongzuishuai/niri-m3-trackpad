@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static validators for integrated-niri-m3 (stdlib only)."""
+"""Static validators for niri-m3-trackpad (stdlib only)."""
 from __future__ import annotations
 
 import argparse
@@ -75,18 +75,25 @@ def css_roles(style: Path, colors: Path) -> None:
 def hardcoded_home(root: Path) -> None:
     offenders: list[str] = []
     text_suffixes = {".toml", ".jsonc", ".json", ".kdl", ".css", ".sh", ".fish", ".py", ".md", ".txt", ".conf", ".ini"}
+    # Runtime artefacts are never committed; skip them by path component so
+    # sandbox installs / venvs / backups cannot trip the audit.
+    skip_dirs = {".sandbox", ".venv", "__pycache__", ".git", "captures"}
     for p in root.rglob("*"):
         if not p.is_file() or p.suffix not in text_suffixes:
             continue
-        # Historical upstream documents/snapshots may quote the old path.
-        if any(part in str(p) for part in (
+        parts = set(p.relative_to(root).parts)
+        if parts & skip_dirs:
+            continue
+        # All generated / historical documentation is informational only.
+        rel = str(p.relative_to(root))
+        if rel.startswith("docs/") or any(part in rel for part in (
             "profiles/niri-dotfiles", "profiles/m3-waybar/README.md",
             "profiles/elan-touch/README.md", "profiles/elan-touch/touchviz/README.md",
-            ".test-runtime", "/docs/", "validation-report.md", "README.md", "AGENTS.md")) or any(
-                marker in str(p) for marker in ("/.venv/", "/.sandbox/")):
+            ".test-runtime", "validation-report.md", "README.md", "AGENTS.md")):
             continue
-        # Installer and validator intentionally contain the literal as a replacement source.
-        if p.name in {"install.sh", "validate.py"}:
+        # Installer, unit template and validator intentionally contain the
+        # literal as a replacement source.
+        if p.name in {"install.sh", "validate.py", "elan-gesture.service"}:
             continue
         try:
             if "/home/lancetfish" in p.read_text(errors="ignore"):
@@ -110,19 +117,38 @@ def sources(root: Path) -> None:
             raise ValueError(f"integration {key}: missing {value}")
 
 
+def validate_wheel(root: Path) -> None:
+    """The vendored wheel must exist and match the lockfile hash."""
+    import hashlib
+    import re
+    wheels = sorted((root / "vendor/wheels").glob("*.whl"))
+    if not wheels:
+        raise ValueError("no vendored .whl under vendor/wheels")
+    lock = (root / "profiles/elan-touch/requirements.lock").read_text()
+    expected = re.search(r"sha256:([0-9a-f]{64})", lock)
+    if not expected:
+        raise ValueError("requirements.lock has no sha256 hash")
+    for wheel in wheels:
+        digest = hashlib.sha256(wheel.read_bytes()).hexdigest()
+        if digest != expected.group(1):
+            raise ValueError(f"{wheel.name}: sha256 {digest} != {expected.group(1)}")
+
+
 def all_validators(root: Path) -> None:
     validate_jsonc(root / "profiles/m3-waybar/config.jsonc")
     css_roles(root / "profiles/m3-waybar/style.css", root / "profiles/m3-waybar/colors.css")
     for rel in ("profiles/elan-touch/config/default.toml",
                 "profiles/elan-touch/config/examples/four-directions.toml",
+                "profiles/elan-touch/config/examples/apple-trackpad.toml",
                 "profiles/niri-dotfiles/dotfiles/.config/matugen/config.toml",
                 "manifest.toml"):
         tomllib.loads((root / rel).read_text())
     sources(root)
+    validate_wheel(root)
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="Validate integrated-niri-m3 static assets")
+    p = argparse.ArgumentParser(description="Validate niri-m3-trackpad static assets")
     p.add_argument("--jsonc", type=Path)
     p.add_argument("--css-roles", nargs=2, type=Path, metavar=("STYLE", "COLORS"))
     p.add_argument("--no-hardcoded-home", type=Path)

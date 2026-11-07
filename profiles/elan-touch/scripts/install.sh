@@ -45,7 +45,14 @@ say "Creating Python virtual environment and installing pinned dependency"
 if [[ ! -x "$PY" ]]; then
     python3 -m venv --system-site-packages "$VENV"
 fi
-"$PY" -m pip install --no-cache-dir --require-hashes -r "$ROOT/requirements.lock"
+REPO_ROOT="$(cd "$ROOT/../.." && pwd)"
+WHEEL="$(ls "$REPO_ROOT"/vendor/wheels/*.whl 2>/dev/null | head -1 || true)"
+if [[ -n "$WHEEL" && -f "$WHEEL" ]]; then
+    "$PY" -m pip install --no-cache-dir --no-index "$WHEEL" || \
+        "$PY" -m pip install --no-cache-dir --require-hashes -r "$ROOT/requirements.lock"
+else
+    "$PY" -m pip install --no-cache-dir --require-hashes -r "$ROOT/requirements.lock"
+fi
 
 say "Installing user configuration (existing config is preserved)"
 mkdir -p "$CONFIG_DIR" "$SYSTEMD_DIR" "$FISH_DIR" "$STATE_DIR" "$ROOT/docs/captures" "$ROOT/logs"
@@ -58,7 +65,9 @@ fi
 
 say "Installing fish helpers and systemd user unit"
 install -m 0644 "$ROOT/fish/conf.d/elan-gesture.fish" "$FISH_DIR/elan-gesture.fish"
-install -m 0644 "$ROOT/systemd/$SERVICE" "$SYSTEMD_DIR/$SERVICE"
+sed -e "s|/home/lancetfish/code/ThinkPad|$ROOT|g" \
+    -e "s|/home/lancetfish/.config/elan-gesture/config.toml|$CONFIG_DIR/config.toml|g" \
+    "$ROOT/systemd/$SERVICE" > "$SYSTEMD_DIR/$SERVICE"
 export DBUS_SESSION_BUS_ADDRESS="$DBUS_ADDR"
 systemctl --user daemon-reload
 systemd-analyze --user verify "$SYSTEMD_DIR/$SERVICE"

@@ -49,8 +49,8 @@ optional_commands = ["evtest", "getfacl", "udevadm"]
 [integration.waybar]
 # The unified bar is M3. Niri's spawn-at-startup line is patched by scripts/activate.sh.
 startup_old = 'spawn-at-startup "waybar"'
-startup_new = 'spawn-at-startup "waybar" "-c" "$HOME/.config/waybar-m3/config.jsonc" "-s" "$HOME/.config/waybar-m3/style.css"'
-# KDL does not expand $HOME inside spawn argv; activate.sh instead installs a tiny launcher.
+startup_new = 'spawn-at-startup "integrated-waybar"'
+# KDL does not expand $HOME inside spawn argv; the launcher builds the paths.
 launcher = "~/.local/bin/integrated-waybar"
 launcher_source = "modules/integrated-waybar"
 

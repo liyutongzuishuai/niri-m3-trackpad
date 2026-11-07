@@ -9,9 +9,20 @@ if [[ ! -x "$PY" ]]; then
 fi
 OUT="$ROOT/docs/validation-report.md"
 CHECK_LOG="$ROOT/.sandbox/validation-check.log"
+VALIDATION_LOG="$ROOT/.sandbox/validation.log"
 mkdir -p "$ROOT/docs" "$ROOT/.sandbox"
+: > "$VALIDATION_LOG"
 PASS=0; FAIL=0
-check(){ local name="$1"; shift; if "$@" >"$CHECK_LOG" 2>&1; then printf 'PASS  %s\n' "$name"; PASS=$((PASS+1)); else printf 'FAIL  %s\n' "$name"; sed -n '1,20p' "$CHECK_LOG"; FAIL=$((FAIL+1)); fi; }
+check(){ local name="$1"; shift
+    if "$@" >"$CHECK_LOG" 2>&1; then
+        printf 'PASS  %-52s %s\n' "$name" "" >> "$VALIDATION_LOG"
+        printf 'PASS  %s\n' "$name"; PASS=$((PASS+1))
+    else
+        printf 'FAIL  %-52s\n' "$name" >> "$VALIDATION_LOG"
+        sed -n '1,20p' "$CHECK_LOG" >> "$VALIDATION_LOG"
+        printf 'FAIL  %s\n' "$name"; sed -n '1,20p' "$CHECK_LOG"; FAIL=$((FAIL+1))
+    fi
+}
 info(){ printf '\n==> %s\n' "$*"; }
 
 info "Manifest / configs"
@@ -37,6 +48,16 @@ check "hard-coded home audit" "$PY" "$ROOT/tools/validate.py" --no-hardcoded-hom
 check "waybar CSS role references" "$PY" "$ROOT/tools/validate.py" --css-roles "$ROOT/profiles/m3-waybar/style.css" "$ROOT/profiles/m3-waybar/colors.css"
 check "Niri startup snippet present" grep -q 'integrated-waybar' "$ROOT/modules/niri-startup.kdl"
 check "manifest profile sources exist" "$PY" "$ROOT/tools/validate.py" --sources "$ROOT"
+check "vendored wheel matches lockfile hash" "$PY" -c "
+import hashlib, re, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+w = sorted((root/'vendor/wheels').glob('*.whl'))
+assert w, 'no vendored wheel'
+h = re.search(r'sha256:([0-9a-f]{64})', (root/'profiles/elan-touch/requirements.lock').read_text()).group(1)
+d = hashlib.sha256(w[0].read_bytes()).hexdigest()
+assert d == h, (d, h)
+" "$ROOT"
 
 info "Elan offline unit tests"
 check "elan unittest" env PYTHONPATH="$ROOT/profiles/elan-touch/src" "$PY" -m unittest discover -s "$ROOT/profiles/elan-touch/tests" -p 'test_*.py'
@@ -58,7 +79,7 @@ fi
   echo "- PASS: $PASS"
   echo "- FAIL: $FAIL"
   echo
-  echo "See terminal output and $ROOT/docs/validation.log for details."
+  echo "See $VALIDATION_LOG for per-check output."
 } > "$OUT"
 printf '\nSummary: PASS=%d FAIL=%d report=%s\n' "$PASS" "$FAIL" "$OUT"
 (( FAIL == 0 ))

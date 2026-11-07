@@ -73,7 +73,7 @@ cd ~/code/niri-m3-trackpad
 ./scripts/verify.sh
 ```
 
-`verify.sh` 当前实测 `PASS=23 FAIL=0`。
+`verify.sh` 当前实测 `PASS=24 FAIL=0`。
 
 ### 安装推荐组合
 
@@ -82,29 +82,35 @@ cd ~/code/niri-m3-trackpad
     --profile niri-core --profile niri-theme --profile elan-gesture
 ```
 
-这会：
+**这一条命令就是完整复现**，它按顺序做完：
 
-- 部署 M3 Waybar 到 `~/.config/waybar-m3` 并安装字体；
-- 部署 Niri 配置与 Matugen 模板；
-- 安装 `~/.local/bin/integrated-waybar` 启动器，KDL 只把 `spawn-at-startup "waybar"` 改成它；
-- 安装 Elan 手势到 `~/.local/share/integrated-niri-m3/elan-touch`，生成独立 venv，复制用户配置/systemd/fish 文件；
-- 逐文件备份被覆盖的目标到 `~/.local/state/integrated-niri-m3/backups/<时间戳>/restore.tsv`。
+1. 部署 M3 Waybar 到 `~/.config/waybar-m3`（含字体、控制中心、脚本）；
+2. 部署 Niri KDL 与 Matugen 模板；把 KDL 的 `spawn-at-startup "waybar"` 改成 `integrated-waybar`，并把 `$HOME/...` 壁纸路径替换为真实绝对路径；
+3. 安装 `~/.local/bin/integrated-waybar` 启动器；
+4. 给 `touchpad {}` 补 `click-method "clickfinger"`、`drag true`、`drag-lock`（Apple 双指右键 / 三指拖移），`niri validate` 失败自动回滚；
+5. 安装 Elan 手势到 `~/.local/share/integrated-niri-m3/elan-touch`，用**仓库自带的 wheel**（`vendor/wheels/`，离线可用、hash 与 lockfile 一致）建好 venv，生成 systemd unit、fish helper、用户配置；
+6. 复制壁纸到 `~/Pictures/Wallpapers`（默认开启，可用 `--no-assets` 跳过）；
+7. 检查触控板读权限，缺则通过 `pkexec`/`sudo` 安装 `72-` uaccess 规则（若当前无图形 polkit agent，会打印唯一待执行授权命令）；
+8. `systemctl --user daemon-reload` + `enable --now elan-gesture.service`，并在 waybar 已运行时重启它；
+9. **每个目标只备份一次**到 `~/.local/state/integrated-niri-m3/backups/<时间戳>/restore.tsv`。
 
-`--all` 额外包含 `niri-supporting`（fish/foot/fuzzel/mako/kitty/waypaper 等白名单目录）；`--assets` 才复制壁纸；`--no-elan` 可跳过手势。
+`--all` 额外包含 `niri-supporting`（fish/foot/fuzzel/mako/kitty/waypaper 等白名单目录）；`--no-elan` 跳过手势；`--no-niri-input` 跳过第 4 步；`--no-bootstrap` 跳过第 7 步；`--no-activate` 跳过第 8 步（不启用服务/不重启 waybar）。
 
 ### 激活与回滚
 
 ```fish
-./scripts/activate.sh --apply          # 重启 Waybar、启用/重启 elan-gesture.service
+./scripts/activate.sh --apply          # 只重启服务，不重装文件
 ./scripts/restore.sh --latest           # 先看恢复计划
 ./scripts/restore.sh --latest --apply   # 实际恢复
 ```
+
+重装或改了配置后，若服务已在跑，执行 `systemctl --user restart elan-gesture.service`。若首次安装时打印了 udev 授权命令，执行后重新登录或重插触控板即可。
 
 ### 手势单独安装（不走综合安装器）
 
 ```fish
 cd profiles/elan-touch
-./scripts/install.sh                   # 可选 --niri-input 补 clickfinger/drag
+./scripts/install.sh                   # 也会补 clickfinger/drag、装 udev 规则、启用服务
 elan-gesture-gestures                  # 打印生效手势表
 journalctl --user -u elan-gesture.service -f -o cat
 ```
@@ -151,7 +157,9 @@ niri-m3-trackpad/
 
 M3 Waybar 脚本：`jq`、`pactl`、`brightnessctl`、`nmcli`、`bluetoothctl`、`playerctl`、`makoctl`、`notify-send`、`python3-gobject`、`gtk3`、`gtk-layer-shell`、`Material Symbols Rounded`、`Roboto`。
 
-Elan 手势：`evdev-binary==2.0.0`（自带 `requirements.lock` 校验）、Python 3.14、`systemctl --user`、udev `uaccess` ACL；可选 `ydotoold`（注入）、`wl-paste`（查找）、`GTK4` + `python3-cairo` + `gtk4-layer-shell`（TouchViz）。
+Elan 手势：Python **3.14 x86_64**（`vendor/wheels/` 内含已验证的 `evdev-binary==2.0.0` wheel，离线可用；其他平台走 `requirements.lock` 的 hash 校验下载）、`systemctl --user`、udev `uaccess` ACL；可选 `ydotoold`（注入）、`wl-paste`（查找）、`GTK4` + `python3-cairo` + `gtk4-layer-shell`（TouchViz）。
+
+系统包需要预先装好（`manifest.toml` 的 `required_commands` 是清单，安装器不装 RPM）：`niri`、`waybar`、`swaybg`、`fcitx5`、`fuzzel`、`mako`、`foot`、`fish`、`jq`、`pactl`、`brightnessctl`、`nmcli`、`bluetoothctl`、`playerctl`、`notify-send`、`python3-gobject`、`gtk3`、`gtk-layer-shell`、`rsync`。缺 `python3-gobject`/`gtk-layer-shell` 时控制中心会退化成 fuzzel 菜单，缺 `ydotoold` 时 `inject` 类动作不可用。
 
 可选：`matugen`、`swaync`、`wlsunset`、`tuned`。`verify.sh` 会列出缺失命令，缺可选命令不会让静态校验失败。
 
@@ -165,7 +173,9 @@ Elan 手势：`evdev-binary==2.0.0`（自带 `requirements.lock` 校验）、Pyt
 cd profiles/elan-touch && ./scripts/test-offline.sh
 ```
 
-检查项：manifest/TOML、Waybar JSONC、M3 CSS 颜色角色、硬编码路径、profile 来源、Niri 启动片段、bash/fish/Python 语法、**71 个手势单测**、TouchViz 5 个单测、29 个 JSONL 回放、Niri IPC。
+检查项：manifest/TOML、Waybar JSONC、M3 CSS 颜色角色、硬编码路径、profile 来源、Niri 启动片段、**vendored wheel 的 sha256**、bash/fish/Python 语法、**71 个手势单测**、TouchViz 5 个单测、29 个 JSONL 回放、Niri IPC。
+
+`test-install-sandbox.sh` 把 `HOME` 指向 `.sandbox/home`，并带 `--no-activate --no-bootstrap`，完全不碰真实 `~/.config`、systemd 或 udev。
 
 Waybar 与控制中心可短跑验证：
 
@@ -196,7 +206,9 @@ elan-gesture-lookup --print-only         # 只读诊断查找动作
 - App Exposé 不是真正的窗口网格（Niri 无应用级预览），实现为聚焦同 `app_id` 的下一个窗口；
 - 旋转手势不支持（Wayland/libinput 无 rotate 协议）；
 - 右边缘双指左滑会同时被 libinput 当作水平滚动，靠 15 mm 边缘带降低误触；
-- 真机手指的完整统计仍需本地补做，见 [profiles/elan-touch/docs/TEST_REPORT.md](profiles/elan-touch/docs/TEST_REPORT.md)。
+- 真机手指的完整统计仍需本地补做，见 [profiles/elan-touch/docs/TEST_REPORT.md](profiles/elan-touch/docs/TEST_REPORT.md)；
+- `vendor/wheels/` 只含 `cp314` / `x86_64` wheel；其他 Python 版本或架构需联网走 `requirements.lock` 的 hash 校验下载，或替换成对应 wheel；
+- udev 规则按本机 Elan `04f3:002f` 触控板编写；其他型号需改 `72-elan-touchpad-gesture-uaccess.rules` 里的 `ID_PATH` / vendor / product，或用 `--device` 指定节点。
 
 ---
 

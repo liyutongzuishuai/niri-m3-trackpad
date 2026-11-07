@@ -12,6 +12,7 @@ mkdir -p -- "$SANDBOX" "$STATE"
 HOME="$SANDBOX" INTEGRATED_STATE_DIR="$STATE" \
     "$ROOT/scripts/install.sh" --apply --profile m3-waybar \
     --profile niri-core --profile niri-theme --profile elan-gesture \
+    --no-activate --no-bootstrap \
     >"$LOG" 2>&1
 printf 'sandbox install OK\n'
 printf '  HOME:    %s\n' "$SANDBOX"
