@@ -7,6 +7,9 @@ __pycache__/
 # Installer / validator runtime artefacts (regenerated locally)
 .sandbox/
 docs/validation-check.log
+docs/validation-report.md
+docs/sandbox-install.log
+docs/validation.log
 
 # Real-machine captures, logs and probe output (privacy / not portable)
 **/docs/captures/
