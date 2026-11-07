@@ -34,7 +34,10 @@ check "matugen config TOML parses" "$PY" -c "import tomllib;tomllib.load(open('$
 
 info "Shell / fish / Python syntax"
 while IFS= read -r f; do
-    [[ "$f" == *.sh || ( "$f" != *.* && -x "$f" ) ]] || continue
+    # Judge by basename only: a dot anywhere in the full path (e.g. a checkout
+    # under .sandbox/clone-check) must not hide an executable launcher.
+    base="${f##*/}"
+    [[ "$base" == *.sh || ( "$base" != *.* && -x "$f" ) ]] || continue
     check "bash -n ${f#$ROOT/}" bash -n "$f"
 done < <(find "$ROOT/scripts" "$ROOT/modules" -maxdepth 1 -type f -print | sort)
 while IFS= read -r f; do check "fish -n ${f#$ROOT/}" fish -n "$f"; done < <(find "$ROOT/profiles/elan-touch/fish" -type f -name '*.fish' -print | sort)
