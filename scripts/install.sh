@@ -252,8 +252,16 @@ install_elan(){
     if [[ ! -f "$HOME/.config/elan-gesture/config.toml" ]]; then
         cp -a "$src/config/examples/apple-trackpad.toml" "$HOME/.config/elan-gesture/config.toml"
     fi
+    # The fish helper and the systemd unit live OUTSIDE $dest (the install_tree
+    # target), so these are genuine first writes: back up the previously
+    # installed copy once each before overwriting. Without this, a machine that
+    # still points at an older checkout (~/code/ThinkPad) loses the only copy
+    # of its helper/unit and cannot roll back (backup_dest dedupes via
+    # BACKED_UP, so re-running never records a target twice).
+    backup_dest "$HOME/.config/fish/conf.d/elan-gesture.fish"
     install -m 0755 "$src/fish/conf.d/elan-gesture.fish" "$HOME/.config/fish/conf.d/elan-gesture.fish"
     # Generate the unit from the pristine template for this exact HOME.
+    backup_dest "$HOME/.config/systemd/user/elan-gesture.service"
     sed -e "s|/home/lancetfish/code/ThinkPad|$dest|g" \
         -e "s|/home/lancetfish/.config/elan-gesture/config.toml|$HOME/.config/elan-gesture/config.toml|g" \
         "$src/systemd/elan-gesture.service" > "$HOME/.config/systemd/user/elan-gesture.service"
@@ -347,7 +355,14 @@ fi
 
 if (( APPLY )) && (( ACTIVATE )); then
     info "Activating services"
-    systemctl --user daemon-reload
+    # daemon-reload is a convenience step: by now every file is written and
+    # backed up, so a session without a reachable user D-Bus (ssh/tty, no
+    # graphical agent) must not turn a completed install into exit 1.
+    if ! systemctl --user daemon-reload; then
+        warn "systemctl --user daemon-reload failed (no reachable user D-Bus?)."
+        warn "Files are installed and backed up; after logging into a graphical session run:"
+        printf '    systemctl --user daemon-reload && systemctl --user enable --now elan-gesture.service\n'
+    fi
     if (( WITH_ELDAN )) && [[ " ${PROFILES[*]} " == *" elan-gesture "* ]]; then
         systemctl --user enable --now elan-gesture.service 2>/dev/null || \
             warn "elan-gesture.service could not start; run: systemctl --user restart elan-gesture.service"

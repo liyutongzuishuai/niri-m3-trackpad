@@ -6,6 +6,7 @@ __pycache__/
 
 # Installer / validator runtime artefacts (regenerated locally)
 .sandbox/
+.agent-teams/
 docs/validation-check.log
 docs/validation-report.md
 docs/sandbox-install.log

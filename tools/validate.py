@@ -77,7 +77,7 @@ def hardcoded_home(root: Path) -> None:
     text_suffixes = {".toml", ".jsonc", ".json", ".kdl", ".css", ".sh", ".fish", ".py", ".md", ".txt", ".conf", ".ini"}
     # Runtime artefacts are never committed; skip them by path component so
     # sandbox installs / venvs / backups cannot trip the audit.
-    skip_dirs = {".sandbox", ".venv", "__pycache__", ".git", "captures"}
+    skip_dirs = {".sandbox", ".venv", "__pycache__", ".git", "captures", ".agent-teams"}
     for p in root.rglob("*"):
         if not p.is_file() or p.suffix not in text_suffixes:
             continue
